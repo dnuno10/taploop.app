@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/data/app_state.dart';
 import '../../../core/data/repositories/admin_repository.dart';
 import '../../../core/data/repositories/lead_repository.dart';
+import '../../../core/services/metrics_realtime_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme_extensions.dart';
 import '../../../core/utils/responsive.dart';
@@ -25,27 +26,47 @@ class _TeamPerformanceViewState extends State<TeamPerformanceView> {
   String? _selectedMemberId;
   final TextEditingController _searchCtrl = TextEditingController();
   String _memberSearch = '';
+  MetricsRealtimeSubscription? _metricsRealtime;
+  String? _realtimeOrgId;
 
   @override
   void initState() {
     super.initState();
     appState.addListener(_onAppStateChanged);
+    _bindRealtime();
     _loadMembers();
   }
 
   @override
   void dispose() {
     appState.removeListener(_onAppStateChanged);
+    _metricsRealtime?.close();
     _searchCtrl.dispose();
     super.dispose();
   }
 
   void _onAppStateChanged() {
     final orgId = appState.currentUser?.orgId;
+    _bindRealtime();
     if (orgId == null || orgId == _loadedOrgId) return;
     if (!mounted) return;
     setState(() => _loading = true);
     _loadMembers();
+  }
+
+  void _bindRealtime() {
+    final orgId = appState.currentUser?.orgId;
+    if (orgId == _realtimeOrgId) return;
+    _metricsRealtime?.close();
+    _realtimeOrgId = orgId;
+    if (orgId == null || orgId.isEmpty) return;
+    _metricsRealtime = MetricsRealtimeSubscription.forOrganization(
+      orgId: orgId,
+      onRefresh: () {
+        if (!mounted) return;
+        _loadMembers();
+      },
+    );
   }
 
   Future<void> _loadMembers() async {

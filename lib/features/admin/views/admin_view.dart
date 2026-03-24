@@ -13,6 +13,7 @@ import '../../../core/utils/responsive.dart';
 import '../../../core/data/app_state.dart';
 import '../../../core/data/repositories/admin_repository.dart';
 import '../../../core/data/repositories/card_repository.dart';
+import '../../../core/services/metrics_realtime_service.dart';
 import '../../../core/services/supabase_service.dart';
 import '../../../core/widgets/taploop_button.dart';
 import '../../../core/widgets/taploop_text_field.dart';
@@ -230,11 +231,45 @@ class AdminView extends StatefulWidget {
 class _AdminViewState extends State<AdminView> {
   List<_AdminMember> _members = [];
   bool _loading = true;
+  MetricsRealtimeSubscription? _metricsRealtime;
+  String? _realtimeOrgId;
 
   @override
   void initState() {
     super.initState();
+    appState.addListener(_onAppStateChanged);
+    _bindRealtime();
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    appState.removeListener(_onAppStateChanged);
+    _metricsRealtime?.close();
+    super.dispose();
+  }
+
+  void _onAppStateChanged() {
+    final orgId = appState.currentUser?.orgId;
+    _bindRealtime();
+    if (!mounted || orgId == null) return;
+    setState(() => _loading = true);
+    _loadData();
+  }
+
+  void _bindRealtime() {
+    final orgId = appState.currentUser?.orgId;
+    if (orgId == _realtimeOrgId) return;
+    _metricsRealtime?.close();
+    _realtimeOrgId = orgId;
+    if (orgId == null || orgId.isEmpty) return;
+    _metricsRealtime = MetricsRealtimeSubscription.forOrganization(
+      orgId: orgId,
+      onRefresh: () {
+        if (!mounted) return;
+        _loadData();
+      },
+    );
   }
 
   Future<void> _loadData() async {

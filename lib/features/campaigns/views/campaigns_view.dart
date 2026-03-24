@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/data/app_state.dart';
 import '../../../core/data/repositories/campaign_repository.dart';
+import '../../../core/services/metrics_realtime_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme_extensions.dart';
 import '../../../core/utils/responsive.dart';
@@ -37,23 +38,48 @@ class CampaignsView extends StatefulWidget {
 class _CampaignsViewState extends State<CampaignsView> {
   List<CampaignModel> _campaigns = [];
   bool _loading = true;
+  String? _loadedOrgId;
+  MetricsRealtimeSubscription? _metricsRealtime;
+  String? _realtimeOrgId;
 
   @override
   void initState() {
     super.initState();
     appState.addListener(_onAppStateChanged);
+    _bindRealtime();
     _load();
   }
 
   @override
   void dispose() {
     appState.removeListener(_onAppStateChanged);
+    _metricsRealtime?.close();
     super.dispose();
   }
 
   void _onAppStateChanged() {
+    final orgId = appState.currentUser?.orgId;
+    _bindRealtime();
+    if (orgId != _loadedOrgId) {
+      _load();
+    }
     if (!mounted) return;
     setState(() {});
+  }
+
+  void _bindRealtime() {
+    final orgId = appState.currentUser?.orgId;
+    if (orgId == _realtimeOrgId) return;
+    _metricsRealtime?.close();
+    _realtimeOrgId = orgId;
+    if (orgId == null || orgId.isEmpty) return;
+    _metricsRealtime = MetricsRealtimeSubscription.forOrganization(
+      orgId: orgId,
+      onRefresh: () {
+        if (!mounted) return;
+        _load();
+      },
+    );
   }
 
   Future<void> _load() async {
@@ -62,12 +88,18 @@ class _CampaignsViewState extends State<CampaignsView> {
       final data = await CampaignRepository.fetchCampaignsForUser(orgId: orgId);
       if (mounted) {
         setState(() {
+          _loadedOrgId = orgId;
           _campaigns = data;
           _loading = false;
         });
       }
     } catch (_) {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() {
+          _loadedOrgId = appState.currentUser?.orgId;
+          _loading = false;
+        });
+      }
     }
   }
 

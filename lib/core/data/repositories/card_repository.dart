@@ -144,6 +144,18 @@ class CardRepository {
         ? userRows.first
         : const <String, dynamic>{};
     final resolvedName = (userJson['name'] as String?)?.trim();
+    final orgId = userJson['org_id'] as String?;
+    String companyName = '';
+    if (orgId != null && orgId.isNotEmpty) {
+      final orgRows = await _db
+          .from('organizations')
+          .select('name')
+          .eq('id', orgId)
+          .limit(1);
+      if ((orgRows as List).isNotEmpty) {
+        companyName = (orgRows.first['name'] as String?)?.trim() ?? '';
+      }
+    }
     final slug = _generateSlug(
       resolvedName == null || resolvedName.isEmpty ? 'usuario' : resolvedName,
       userId,
@@ -153,10 +165,10 @@ class CardRepository {
         .from('digital_cards')
         .insert({
           'user_id': userId,
-          'org_id': userJson['org_id'],
+          'org_id': orgId,
           'name': resolvedName ?? '',
           'job_title': '',
-          'company': '',
+          'company': companyName,
           'bio': '',
           'public_slug': slug,
           'is_active': true,
@@ -169,6 +181,20 @@ class CardRepository {
         .single();
 
     return _fetchWithItems(created);
+  }
+
+  static Future<void> syncCardOrganizationCompany({
+    required String cardId,
+    required String company,
+    String? orgId,
+  }) async {
+    await _db
+        .from('digital_cards')
+        .update({
+          'company': company,
+          if (orgId != null && orgId.isNotEmpty) 'org_id': orgId,
+        })
+        .eq('id', cardId);
   }
 
   static String _generateSlug(String name, String uid) {

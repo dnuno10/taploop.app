@@ -455,15 +455,34 @@ class _ScreenContent extends StatelessWidget {
                 color: Colors.black.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(8 * scale),
               ),
-              child: Text(
-                card.bio!,
-                style: GoogleFonts.dmSans(
-                  fontSize: 9 * scale,
-                  color: isGP ? Colors.white70 : _subColor,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: isCentered ? TextAlign.center : TextAlign.left,
+              child: Column(
+                crossAxisAlignment: isCentered
+                    ? CrossAxisAlignment.center
+                    : CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Sobre ti',
+                    style: GoogleFonts.outfit(
+                      fontSize: 8 * scale,
+                      fontWeight: FontWeight.w700,
+                      color: isGP
+                          ? Colors.white.withValues(alpha: 0.82)
+                          : _textColor.withValues(alpha: 0.7),
+                    ),
+                    textAlign: isCentered ? TextAlign.center : TextAlign.left,
+                  ),
+                  SizedBox(height: 4 * scale),
+                  Text(
+                    card.bio!,
+                    style: GoogleFonts.dmSans(
+                      fontSize: 9 * scale,
+                      color: isGP ? Colors.white70 : _subColor,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: isCentered ? TextAlign.center : TextAlign.left,
+                  ),
+                ],
               ),
             ),
           ],

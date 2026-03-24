@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme_extensions.dart';
 import '../../../core/data/app_state.dart';
 import '../../../core/data/repositories/lead_repository.dart';
+import '../../../core/services/metrics_realtime_service.dart';
 import '../models/lead_model.dart';
 
 class SalesOutcomeView extends StatefulWidget {
@@ -18,29 +19,77 @@ class _SalesOutcomeViewState extends State<SalesOutcomeView> {
   final Set<String> _confirming = {};
   List<LeadModel> _allLeads = [];
   bool _loading = true;
+  String? _loadedCardId;
+  MetricsRealtimeSubscription? _metricsRealtime;
+  String? _realtimeCardId;
 
   @override
   void initState() {
     super.initState();
+    appState.addListener(_onAppStateChanged);
+    _bindRealtime();
     _loadLeads();
+  }
+
+  @override
+  void dispose() {
+    appState.removeListener(_onAppStateChanged);
+    _metricsRealtime?.close();
+    super.dispose();
+  }
+
+  void _onAppStateChanged() {
+    final cardId = appState.currentCard?.id;
+    _bindRealtime();
+    if (cardId == _loadedCardId) return;
+    if (!mounted) return;
+    setState(() => _loading = true);
+    _loadLeads();
+  }
+
+  void _bindRealtime() {
+    final cardId = appState.currentCard?.id;
+    if (cardId == _realtimeCardId) return;
+    _metricsRealtime?.close();
+    _realtimeCardId = cardId;
+    if (cardId == null || cardId.isEmpty) return;
+    _metricsRealtime = MetricsRealtimeSubscription.forCard(
+      cardId: cardId,
+      onRefresh: () {
+        if (!mounted) return;
+        _loadLeads();
+      },
+    );
   }
 
   Future<void> _loadLeads() async {
     final cardId = appState.currentCard?.id;
     if (cardId == null) {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() {
+          _loadedCardId = null;
+          _allLeads = [];
+          _loading = false;
+        });
+      }
       return;
     }
     try {
       final data = await LeadRepository.fetchLeadsForCard(cardId);
       if (mounted) {
         setState(() {
+          _loadedCardId = cardId;
           _allLeads = data;
           _loading = false;
         });
       }
     } catch (_) {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() {
+          _loadedCardId = cardId;
+          _loading = false;
+        });
+      }
     }
   }
 

@@ -53,6 +53,7 @@ class _EditCardViewState extends State<EditCardView>
   bool _saving = false;
   bool _suppressTextSync = false;
   String? _organizationName;
+  bool _syncingOrganizationCompany = false;
 
   @override
   void initState() {
@@ -114,7 +115,6 @@ class _EditCardViewState extends State<EditCardView>
     if (!mounted) return;
     setState(() {
       _card = card.copyWith(company: _organizationName ?? card.company);
-      _unsaved = false;
     });
     _loadFormCompletion();
   }
@@ -151,13 +151,42 @@ class _EditCardViewState extends State<EditCardView>
           : null;
       if (!mounted || orgName == null || orgName.isEmpty) return;
 
+      final shouldPersistCompany =
+          _card.id.isNotEmpty && _card.company.trim() != orgName;
+      final previousUnsaved = _unsaved;
       _syncControllers(company: orgName);
       setState(() {
         _organizationName = orgName;
         _card = _card.copyWith(company: orgName);
-        _unsaved = false;
+        _unsaved = previousUnsaved;
       });
+      if (shouldPersistCompany) {
+        await _persistOrganizationCompanyIfNeeded(orgId, orgName);
+      }
     } catch (_) {}
+  }
+
+  Future<void> _persistOrganizationCompanyIfNeeded(
+    String orgId,
+    String orgName,
+  ) async {
+    if (_syncingOrganizationCompany || _card.id.isEmpty) return;
+
+    _syncingOrganizationCompany = true;
+    try {
+      await CardRepository.syncCardOrganizationCompany(
+        cardId: _card.id,
+        company: orgName,
+        orgId: orgId,
+      );
+      if (!mounted) return;
+      final updatedCard = _card.copyWith(company: orgName, orgId: orgId);
+      appState.updateCard(updatedCard);
+      setState(() => _card = updatedCard);
+    } catch (_) {
+    } finally {
+      _syncingOrganizationCompany = false;
+    }
   }
 
   void _syncControllers({

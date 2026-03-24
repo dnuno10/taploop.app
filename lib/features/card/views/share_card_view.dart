@@ -12,6 +12,7 @@ import '../../../core/theme/app_theme_extensions.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../core/data/app_state.dart';
 import '../../../core/data/repositories/analytics_repository.dart';
+import '../../../core/services/metrics_realtime_service.dart';
 import '../../../core/widgets/card_initial_setup_state.dart';
 import '../../analytics/models/analytics_summary_model.dart';
 import '../models/contact_item_model.dart';
@@ -29,25 +30,45 @@ class _ShareCardViewState extends State<ShareCardView> {
   Color _qrColor = AppColors.black;
   AnalyticsSummaryModel? _analytics;
   String? _loadedCardId;
+  MetricsRealtimeSubscription? _metricsRealtime;
+  String? _realtimeCardId;
 
   @override
   void initState() {
     super.initState();
     appState.addListener(_onAppStateChanged);
+    _bindRealtime();
     _loadAnalytics();
   }
 
   @override
   void dispose() {
     appState.removeListener(_onAppStateChanged);
+    _metricsRealtime?.close();
     super.dispose();
   }
 
   void _onAppStateChanged() {
     final cardId = appState.currentCard?.id;
+    _bindRealtime();
     if (cardId == null || cardId == _loadedCardId) return;
     _loadAnalytics();
     if (mounted) setState(() {});
+  }
+
+  void _bindRealtime() {
+    final cardId = appState.currentCard?.id;
+    if (cardId == _realtimeCardId) return;
+    _metricsRealtime?.close();
+    _realtimeCardId = cardId;
+    if (cardId == null || cardId.isEmpty) return;
+    _metricsRealtime = MetricsRealtimeSubscription.forCard(
+      cardId: cardId,
+      onRefresh: () {
+        if (!mounted) return;
+        _loadAnalytics();
+      },
+    );
   }
 
   Future<void> _loadAnalytics() async {

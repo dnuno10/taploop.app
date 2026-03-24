@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme_extensions.dart';
 import '../../../core/data/app_state.dart';
 import '../../../core/data/repositories/lead_repository.dart';
+import '../../../core/services/metrics_realtime_service.dart';
 import '../models/lead_model.dart';
 
 // ─── Simulated timeline events ────────────────────────────────────────────────
@@ -214,27 +215,47 @@ class _LeadIntelligenceViewState extends State<LeadIntelligenceView> {
   String? _loadedCardId;
   final TextEditingController _searchCtrl = TextEditingController();
   String _search = '';
+  MetricsRealtimeSubscription? _metricsRealtime;
+  String? _realtimeCardId;
 
   @override
   void initState() {
     super.initState();
     appState.addListener(_onAppStateChanged);
+    _bindRealtime();
     _load();
   }
 
   @override
   void dispose() {
     appState.removeListener(_onAppStateChanged);
+    _metricsRealtime?.close();
     _searchCtrl.dispose();
     super.dispose();
   }
 
   void _onAppStateChanged() {
     final cardId = appState.currentCard?.id;
+    _bindRealtime();
     if (cardId == null || cardId == _loadedCardId) return;
     if (!mounted) return;
     setState(() => _loading = true);
     _load();
+  }
+
+  void _bindRealtime() {
+    final cardId = appState.currentCard?.id;
+    if (cardId == _realtimeCardId) return;
+    _metricsRealtime?.close();
+    _realtimeCardId = cardId;
+    if (cardId == null || cardId.isEmpty) return;
+    _metricsRealtime = MetricsRealtimeSubscription.forCard(
+      cardId: cardId,
+      onRefresh: () {
+        if (!mounted) return;
+        _load();
+      },
+    );
   }
 
   Future<void> _load() async {

@@ -29,6 +29,7 @@ class _CardInitialSetupStateState extends State<CardInitialSetupState> {
   bool _submitting = false;
   bool _hasProcessedScan = false;
   String? _error;
+  String? _cameraError;
 
   @override
   void dispose() {
@@ -40,6 +41,7 @@ class _CardInitialSetupStateState extends State<CardInitialSetupState> {
     setState(() {
       _scannerVisible = true;
       _error = null;
+      _cameraError = null;
       _hasProcessedScan = false;
     });
   }
@@ -50,6 +52,16 @@ class _CardInitialSetupStateState extends State<CardInitialSetupState> {
       _submitting = false;
       _hasProcessedScan = false;
       _error = null;
+      _cameraError = null;
+    });
+  }
+
+  void _retryScanner() {
+    setState(() {
+      _cameraError = null;
+      _error = null;
+      _hasProcessedScan = false;
+      _submitting = false;
     });
   }
 
@@ -259,6 +271,26 @@ class _CardInitialSetupStateState extends State<CardInitialSetupState> {
                           MobileScanner(
                             controller: _scannerController,
                             onDetect: _handleBarcode,
+                            errorBuilder: (context, error, child) {
+                              final message = switch (error.errorCode) {
+                                MobileScannerErrorCode.permissionDenied =>
+                                  'La camara no tiene permiso. Permite el acceso a la camara para escanear el QR.',
+                                MobileScannerErrorCode.unsupported =>
+                                  'Este dispositivo o navegador no soporta escaneo con camara.',
+                                _ =>
+                                  error.errorDetails?.message ??
+                                      error.errorCode.message,
+                              };
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (!mounted || _cameraError == message) return;
+                                setState(() => _cameraError = message);
+                              });
+                              return _ScannerErrorState(
+                                message: message,
+                                onRetry: _retryScanner,
+                                onClose: _closeScanner,
+                              );
+                            },
                           ),
                           IgnorePointer(
                             child: Container(
@@ -309,10 +341,86 @@ class _CardInitialSetupStateState extends State<CardInitialSetupState> {
                       ),
                     ),
                   ],
+                  if (_cameraError != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      _cameraError!,
+                      style: GoogleFonts.dmSans(
+                        color: AppColors.error,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ScannerErrorState extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+  final VoidCallback onClose;
+
+  const _ScannerErrorState({
+    required this.message,
+    required this.onRetry,
+    required this.onClose,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: context.bgSubtle,
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.videocam_off_rounded,
+            size: 34,
+            color: AppColors.error,
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'No se pudo iniciar la camara',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.outfit(
+              color: context.textPrimary,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.dmSans(
+              color: context.textSecondary,
+              fontSize: 13,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              FilledButton.tonal(
+                onPressed: onRetry,
+                child: const Text('Reintentar'),
+              ),
+              const SizedBox(width: 10),
+              OutlinedButton(
+                onPressed: onClose,
+                child: const Text('Cerrar lector'),
+              ),
+            ],
+          ),
         ],
       ),
     );

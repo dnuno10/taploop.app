@@ -86,6 +86,11 @@ class _HomeShellState extends State<HomeShell> {
       activeIcon: Icons.share_rounded,
       label: 'Compartir',
     ),
+    _NavItem(
+      icon: Icons.settings_outlined,
+      activeIcon: Icons.settings_rounded,
+      label: 'Ajustes',
+    ),
   ];
 
   @override
@@ -220,16 +225,6 @@ class _DesktopShell extends StatelessWidget {
                                 onTap: () => onTap(entry.key),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          _DesktopNavTile(
-                            item: const _NavItem(
-                              icon: Icons.settings_outlined,
-                              activeIcon: Icons.settings_rounded,
-                              label: 'Ajustes',
-                            ),
-                            active: index == 7,
-                            onTap: () => onTap(7),
                           ),
                         ],
                       ),

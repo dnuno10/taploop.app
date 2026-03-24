@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/data/app_state.dart';
 import '../../../core/data/repositories/analytics_repository.dart';
 import '../../../core/data/repositories/lead_repository.dart';
+import '../../../core/services/metrics_realtime_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme_extensions.dart';
 import '../../../core/utils/responsive.dart';
@@ -32,25 +33,45 @@ class _DashboardViewState extends State<DashboardView> {
   List<LeadModel> _leads = [];
   bool _loading = true;
   String? _loadedCardId;
+  MetricsRealtimeSubscription? _metricsRealtime;
+  String? _realtimeCardId;
 
   @override
   void initState() {
     super.initState();
     appState.addListener(_onAppStateChanged);
+    _bindRealtime();
     _load();
   }
 
   @override
   void dispose() {
     appState.removeListener(_onAppStateChanged);
+    _metricsRealtime?.close();
     super.dispose();
   }
 
   void _onAppStateChanged() {
     final cardId = appState.currentCard?.id;
+    _bindRealtime();
     if (!mounted || cardId == _loadedCardId) return;
     setState(() => _loading = true);
     _load();
+  }
+
+  void _bindRealtime() {
+    final cardId = appState.currentCard?.id;
+    if (cardId == _realtimeCardId) return;
+    _metricsRealtime?.close();
+    _realtimeCardId = cardId;
+    if (cardId == null || cardId.isEmpty) return;
+    _metricsRealtime = MetricsRealtimeSubscription.forCard(
+      cardId: cardId,
+      onRefresh: () {
+        if (!mounted) return;
+        _load();
+      },
+    );
   }
 
   Future<void> _load() async {
