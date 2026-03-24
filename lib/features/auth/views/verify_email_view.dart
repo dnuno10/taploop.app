@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme_extensions.dart';
 import '../widgets/auth_layout.dart';
 import '../../../core/widgets/taploop_logo.dart';
 import '../../../core/widgets/taploop_button.dart';
@@ -138,7 +139,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
             style: GoogleFonts.outfit(
               fontSize: 26,
               fontWeight: FontWeight.w700,
-              color: AppColors.black,
+              color: context.textPrimary,
             ),
             textAlign: TextAlign.center,
           ),
@@ -147,7 +148,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
             'Enviamos un código de 6 dígitos a\n${widget.email}',
             style: GoogleFonts.dmSans(
               fontSize: 14,
-              color: AppColors.grey,
+              color: context.textSecondary,
               height: 1.6,
             ),
             textAlign: TextAlign.center,
@@ -192,7 +193,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
                     'Reenviar código en ${_resendCountdown}s',
                     style: GoogleFonts.dmSans(
                       fontSize: 13,
-                      color: AppColors.grey,
+                      color: context.textSecondary,
                     ),
                   )
                 : _resendLoading
@@ -226,7 +227,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
                 style: GoogleFonts.dmSans(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.grey,
+                  color: context.textSecondary,
                   decoration: TextDecoration.underline,
                 ),
               ),
@@ -280,14 +281,14 @@ class _OtpBox extends StatelessWidget {
           style: GoogleFonts.outfit(
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: AppColors.black,
+            color: context.textPrimary,
           ),
           decoration: InputDecoration(
             counterText: '',
             filled: true,
             fillColor: controller.text.isNotEmpty
                 ? AppColors.primary.withValues(alpha: 0.06)
-                : AppColors.surface,
+                : context.bgInput,
             contentPadding: EdgeInsets.zero,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),

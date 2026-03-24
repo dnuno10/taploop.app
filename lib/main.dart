@@ -8,11 +8,13 @@ import 'core/services/supabase_service.dart';
 import 'core/services/auth_service.dart';
 import 'core/data/app_state.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/app_theme_extensions.dart';
 import 'features/home/views/home_shell.dart';
 import 'features/auth/views/login_view.dart';
-import 'features/auth/views/register_view.dart';
-import 'features/auth/views/forgot_password_view.dart';
-import 'features/auth/views/otp_view.dart';
+import 'features/auth/views/legal_pages_view.dart';
+// import 'features/auth/views/register_view.dart';
+// import 'features/auth/views/forgot_password_view.dart';
+// import 'features/auth/views/otp_view.dart';
 import 'features/card/views/public_card_view.dart';
 
 /// Global theme mode notifier
@@ -36,34 +38,43 @@ final _router = GoRouter(
           _AuthGate(pendingNfc: state.uri.queryParameters['pendingNfc']),
     ),
     GoRoute(
-      path: '/register',
-      builder: (context, state) {
-        String? pendingNfc = state.uri.queryParameters['pendingNfc'];
-        final extra = state.extra;
-        if (extra is Map) {
-          pendingNfc ??= extra['pendingNfc']?.toString();
-        }
-        return RegisterView(pendingNfc: pendingNfc);
-      },
+      path: '/terminos',
+      builder: (context, state) => const TermsAndConditionsView(),
     ),
     GoRoute(
-      path: '/forgot-password',
-      builder: (context, state) => const ForgotPasswordView(),
+      path: '/privacidad',
+      builder: (context, state) => const PrivacyPolicyView(),
     ),
-    GoRoute(
-      path: '/otp-verify',
-      builder: (context, state) {
-        final extra = state.extra;
-        final data = extra is Map ? extra.cast<String, String?>() : null;
-        final email = data?['email'];
-        if (email == null || email.isEmpty) return const LoginView();
-        return OtpView(
-          email: email,
-          name: data?['name'],
-          pendingNfc: data?['pendingNfc'],
-        );
-      },
-    ),
+    // Flujo anterior comentado a petición del proyecto:
+    // GoRoute(
+    //   path: '/register',
+    //   builder: (context, state) {
+    //     String? pendingNfc = state.uri.queryParameters['pendingNfc'];
+    //     final extra = state.extra;
+    //     if (extra is Map) {
+    //       pendingNfc ??= extra['pendingNfc']?.toString();
+    //     }
+    //     return RegisterView(pendingNfc: pendingNfc);
+    //   },
+    // ),
+    // GoRoute(
+    //   path: '/forgot-password',
+    //   builder: (context, state) => const ForgotPasswordView(),
+    // ),
+    // GoRoute(
+    //   path: '/otp-verify',
+    //   builder: (context, state) {
+    //     final extra = state.extra;
+    //     final data = extra is Map ? extra.cast<String, String?>() : null;
+    //     final email = data?['email'];
+    //     if (email == null || email.isEmpty) return const LoginView();
+    //     return OtpView(
+    //       email: email,
+    //       name: data?['name'],
+    //       pendingNfc: data?['pendingNfc'],
+    //     );
+    //   },
+    // ),
     GoRoute(
       path: '/nfc/:serial',
       builder: (context, state) {
@@ -143,17 +154,23 @@ class _AuthGateState extends State<_AuthGate> {
     super.dispose();
   }
 
+  Future<void> _hydrateAuthenticatedState() async {
+    final user = await AuthService.restoreSession();
+    if (user == null) {
+      appState.clear();
+      return;
+    }
+    appState.setUser(user);
+    final card = await AuthService.fetchUserCard(user.id);
+    appState.setCard(card);
+  }
+
   Future<void> _bootstrap() async {
     if (_didBootstrap) return;
     _didBootstrap = true;
     appState.setLoadingUser(true);
     try {
-      final user = await AuthService.restoreSession();
-      if (user != null) {
-        appState.setUser(user);
-        final card = await AuthService.fetchUserCard(user.id);
-        appState.setCard(card);
-      }
+      await _hydrateAuthenticatedState();
     } catch (_) {
       appState.setError('No se pudo restaurar la sesión.');
     } finally {
@@ -179,14 +196,7 @@ class _AuthGateState extends State<_AuthGate> {
 
     _syncingAuth = true;
     try {
-      final user = await AuthService.restoreSession();
-      if (user == null) {
-        appState.clear();
-        return;
-      }
-      appState.setUser(user);
-      final card = await AuthService.fetchUserCard(user.id);
-      appState.setCard(card);
+      await _hydrateAuthenticatedState();
     } catch (_) {
       // Preserve existing state if there is a transient auth/network issue.
     } finally {
@@ -221,15 +231,15 @@ class _BootstrapView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFFF8F9FB),
+    return Scaffold(
+      backgroundColor: context.bgPage,
       body: Center(
         child: SizedBox(
           width: 26,
           height: 26,
           child: CircularProgressIndicator(
             strokeWidth: 2.4,
-            color: Color(0xFF0A66C2),
+            color: Theme.of(context).colorScheme.primary,
           ),
         ),
       ),

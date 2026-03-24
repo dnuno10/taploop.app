@@ -11,6 +11,7 @@ import '../../../core/theme/app_theme_extensions.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../core/data/app_state.dart';
 import '../../../core/data/repositories/analytics_repository.dart';
+import '../../../core/widgets/card_initial_setup_state.dart';
 import '../../analytics/models/analytics_summary_model.dart';
 import '../../analytics/widgets/visit_event_tile.dart';
 import '../../analytics/widgets/link_stats_bar.dart';
@@ -278,17 +279,20 @@ class _AnalyticsDashboardViewState extends State<AnalyticsDashboardView>
     final analytics = _analytics;
     final isDesktop = Responsive.isDesktop(context);
     final isMobile = Responsive.isMobile(context);
+    final hasLinkedCard = appState.currentCard != null;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.bgPage,
       body: SafeArea(
         child: Column(
           children: [
             Container(
+              width: double.infinity,
+              alignment: Alignment.centerLeft,
               padding: const EdgeInsets.fromLTRB(24, 20, 24, 18),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(bottom: BorderSide(color: Color(0xFFE8E8E3))),
+              decoration: BoxDecoration(
+                color: context.bgCard,
+                border: Border(bottom: BorderSide(color: context.borderColor)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -306,7 +310,7 @@ class _AnalyticsDashboardViewState extends State<AnalyticsDashboardView>
                           style: GoogleFonts.outfit(
                             fontSize: 28,
                             fontWeight: FontWeight.w800,
-                            color: const Color(0xFF181411),
+                            color: context.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 6),
@@ -314,118 +318,128 @@ class _AnalyticsDashboardViewState extends State<AnalyticsDashboardView>
                           'Monitorea visitas, taps, leads y rendimiento comercial en un solo panel.',
                           style: GoogleFonts.dmSans(
                             fontSize: 13,
-                            color: const Color(0xFF6F6A64),
+                            color: context.textSecondary,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 14),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      _PeriodChip(
-                        label:
-                            '${_fmtDate(_range.start)} – ${_fmtDate(_range.end)}',
-                        onTap: _pickRange,
-                      ),
-                      _ExportActionButton(
-                        label: 'CSV',
-                        icon: Icons.table_chart_outlined,
-                        onTap: _loading || _analytics == null
-                            ? null
-                            : _exportCsv,
-                      ),
-                      _ExportActionButton(
-                        label: 'PDF',
-                        icon: Icons.picture_as_pdf_outlined,
-                        onTap: _loading || _analytics == null
-                            ? null
-                            : _exportPdf,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: const Color(0xFFE8E8E3)),
-                      ),
-                      child: TabBar(
-                        controller: _tab,
-                        isScrollable: true,
-                        tabs: const [
-                          Tab(text: 'Métricas'),
-                          Tab(text: 'Leads'),
-                          Tab(text: 'Pipeline'),
-                          Tab(text: 'Ventas'),
-                        ],
-                        indicator: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFFE8E8E3)),
+                  if (hasLinkedCard) ...[
+                    const SizedBox(height: 14),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        _PeriodChip(
+                          label:
+                              '${_fmtDate(_range.start)} – ${_fmtDate(_range.end)}',
+                          onTap: _pickRange,
                         ),
-                        indicatorSize: TabBarIndicatorSize.tab,
-                        dividerColor: Colors.transparent,
-                        labelColor: const Color(0xFF181411),
-                        unselectedLabelColor: const Color(0xFF6F6A64),
-                        labelStyle: GoogleFonts.dmSans(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
+                        _ExportActionButton(
+                          label: 'CSV',
+                          icon: Icons.table_chart_outlined,
+                          onTap: _loading || _analytics == null
+                              ? null
+                              : _exportCsv,
                         ),
-                        unselectedLabelStyle: GoogleFonts.dmSans(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                        _ExportActionButton(
+                          label: 'PDF',
+                          icon: Icons.picture_as_pdf_outlined,
+                          onTap: _loading || _analytics == null
+                              ? null
+                              : _exportPdf,
                         ),
-                        tabAlignment: TabAlignment.start,
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: context.bgCard,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: context.borderColor),
+                        ),
+                        child: TabBar(
+                          controller: _tab,
+                          isScrollable: true,
+                          tabs: const [
+                            Tab(text: 'Métricas'),
+                            Tab(text: 'Leads'),
+                            Tab(text: 'Pipeline'),
+                            Tab(text: 'Ventas'),
+                          ],
+                          indicator: BoxDecoration(
+                            color: context.bgCard,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: context.borderColor),
+                          ),
+                          indicatorSize: TabBarIndicatorSize.tab,
+                          dividerColor: Colors.transparent,
+                          labelColor: context.textPrimary,
+                          unselectedLabelColor: context.textSecondary,
+                          labelStyle: GoogleFonts.dmSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          unselectedLabelStyle: GoogleFonts.dmSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          tabAlignment: TabAlignment.start,
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
             Expanded(
               child: Container(
-                color: Colors.white,
-                child: TabBarView(
-                  controller: _tab,
-                  children: [
-                    // ── Mis métricas ────────────────────────────────────────────────
-                    SingleChildScrollView(
-                      child: _loading
-                          ? const SizedBox(
-                              height: 300,
-                              child: Center(child: CircularProgressIndicator()),
-                            )
-                          : analytics == null
-                          ? const SizedBox(
-                              height: 300,
-                              child: Center(child: Text('Sin datos')),
-                            )
-                          : isDesktop
-                          ? _DesktopLayout(
-                              analytics: analytics,
-                              rangeEnd: _range.end,
-                            )
-                          : _MobileLayout(
-                              analytics: analytics,
-                              isMobile: isMobile,
-                              rangeEnd: _range.end,
-                            ),
-                    ),
-                    // ── Mis leads ───────────────────────────────────────────────────
-                    const _AnalyticsTabPanel(child: LeadIntelligenceView()),
-                    // ── Pipeline CRM ────────────────────────────────────────────────
-                    const _AnalyticsTabPanel(child: PipelineView()),
-                    // ── Mis ventas ──────────────────────────────────────────────────
-                    const _AnalyticsTabPanel(child: SalesOutcomeView()),
-                  ],
-                ),
+                color: context.bgPage,
+                child: hasLinkedCard
+                    ? TabBarView(
+                        controller: _tab,
+                        children: [
+                          // ── Mis métricas ────────────────────────────────────────────────
+                          SingleChildScrollView(
+                            child: _loading
+                                ? const SizedBox(
+                                    height: 300,
+                                    child: Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  )
+                                : analytics == null
+                                ? const SizedBox(
+                                    height: 300,
+                                    child: Center(child: Text('Sin datos')),
+                                  )
+                                : isDesktop
+                                ? _DesktopLayout(
+                                    analytics: analytics,
+                                    rangeEnd: _range.end,
+                                  )
+                                : _MobileLayout(
+                                    analytics: analytics,
+                                    isMobile: isMobile,
+                                    rangeEnd: _range.end,
+                                  ),
+                          ),
+                          const _AnalyticsTabPanel(
+                            child: LeadIntelligenceView(),
+                          ),
+                          const _AnalyticsTabPanel(child: PipelineView()),
+                          const _AnalyticsTabPanel(child: SalesOutcomeView()),
+                        ],
+                      )
+                    : SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+                        child: CardInitialSetupState(
+                          onLinked: () => setState(() {}),
+                        ),
+                      ),
               ),
             ),
           ],
@@ -446,9 +460,9 @@ class _AnalyticsTabPanel extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.bgCard,
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: const Color(0xFFE8E8E3)),
+          border: Border.all(color: context.borderColor),
         ),
         clipBehavior: Clip.antiAlias,
         child: child,
@@ -477,9 +491,9 @@ class _MobileLayout extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.bgCard,
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: const Color(0xFFE8E8E3)),
+          border: Border.all(color: context.borderColor),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -518,9 +532,9 @@ class _DesktopLayout extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.bgCard,
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: const Color(0xFFE8E8E3)),
+          border: Border.all(color: context.borderColor),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -546,8 +560,8 @@ class _DesktopLayout extends StatelessWidget {
             ),
             Container(
               width: 320,
-              decoration: const BoxDecoration(
-                border: Border(left: BorderSide(color: Color(0xFFE8E8E3))),
+              decoration: BoxDecoration(
+                border: Border(left: BorderSide(color: context.borderColor)),
               ),
               padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
               child: _ActivityBlock(analytics: analytics),
@@ -575,9 +589,9 @@ class _TotalBlock extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.bgCard,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE8E8E3)),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -715,7 +729,7 @@ class _MetricRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE8E8E3)),
+        border: Border.all(color: context.borderColor),
       ),
       child: Row(
         children: items
@@ -816,7 +830,7 @@ class _MetricCompactCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE8E8E3)),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -880,7 +894,7 @@ class _ChartBlock extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE8E8E3)),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -965,7 +979,7 @@ class _LinksBlock extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE8E8E3)),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1038,7 +1052,7 @@ class _ActivityBlock extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE8E8E3)),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

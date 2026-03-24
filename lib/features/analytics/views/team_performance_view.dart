@@ -145,14 +145,14 @@ class _TeamPerformanceViewState extends State<TeamPerformanceView> {
     );
     final hasSelectedMember = selectionPool.isNotEmpty;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.bgPage,
       body: RefreshIndicator(
         onRefresh: _loadMembers,
         child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(
               child: Container(
-                color: Colors.white,
+                color: context.bgCard,
                 padding: EdgeInsets.fromLTRB(
                   Responsive.isMobile(context) ? 20 : 32,
                   24,
@@ -167,7 +167,7 @@ class _TeamPerformanceViewState extends State<TeamPerformanceView> {
                       style: GoogleFonts.outfit(
                         fontSize: 28,
                         fontWeight: FontWeight.w800,
-                        color: const Color(0xFF181411),
+                        color: context.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -175,7 +175,7 @@ class _TeamPerformanceViewState extends State<TeamPerformanceView> {
                       'Rendimiento del equipo y visibilidad por miembro en un mismo panel.',
                       style: GoogleFonts.dmSans(
                         fontSize: 13,
-                        color: const Color(0xFF6F6A64),
+                        color: context.textSecondary,
                       ),
                     ),
                   ],
@@ -198,9 +198,9 @@ class _TeamPerformanceViewState extends State<TeamPerformanceView> {
                   child: Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: context.bgCard,
                       borderRadius: BorderRadius.circular(28),
-                      border: Border.all(color: const Color(0xFFE8E8E3)),
+                      border: Border.all(color: context.borderColor),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -282,7 +282,7 @@ class _TeamPerformanceViewState extends State<TeamPerformanceView> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(28),
-                      border: Border.all(color: const Color(0xFFE8E8E3)),
+                      border: Border.all(color: context.borderColor),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -327,7 +327,7 @@ class _TeamPerformanceViewState extends State<TeamPerformanceView> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(28),
-                      border: Border.all(color: const Color(0xFFE8E8E3)),
+                      border: Border.all(color: context.borderColor),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -568,10 +568,12 @@ class _ExplorerMemberTile extends StatelessWidget {
         child: Ink(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           decoration: BoxDecoration(
-            color: active ? const Color(0xFFFFF4ED) : Colors.white,
+            color: active
+                ? AppColors.primary.withValues(alpha: 0.08)
+                : context.bgCard,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: active ? AppColors.primary : const Color(0xFFE8E8E3),
+              color: active ? AppColors.primary : context.borderColor,
             ),
           ),
           child: Row(
@@ -644,9 +646,9 @@ class _EmptyTeamExplorer extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.bgCard,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE8E8E3)),
+        border: Border.all(color: context.borderColor),
       ),
       child: Text(
         'No hay miembros disponibles para mostrar.',
@@ -1102,7 +1104,7 @@ class _MemberAnalyticsCardState extends State<_MemberAnalyticsCard> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE8E8E3)),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

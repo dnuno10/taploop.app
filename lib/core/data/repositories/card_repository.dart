@@ -99,17 +99,87 @@ class CardRepository {
   // ─── Activate NFC card (link serial → current user) ──────────────────────
 
   static Future<bool> activateNfcCard(String serial) async {
+    final currentUser = _db.auth.currentUser;
+    if (currentUser == null) return false;
+
     final res = await _db
         .from('nfc_cards')
         .update({
-          'user_id': _db.auth.currentUser!.id,
+          'user_id': currentUser.id,
           'is_assigned': true,
           'assigned_at': DateTime.now().toIso8601String(),
         })
         .eq('serial', serial)
         .eq('is_assigned', false)
         .select();
-    return (res as List).isNotEmpty;
+
+    final activated = (res as List).isNotEmpty;
+    if (!activated) return false;
+
+    await _ensureDigitalCardForUser(currentUser.id);
+    return true;
+  }
+
+  static Future<DigitalCardModel?> _ensureDigitalCardForUser(
+    String userId,
+  ) async {
+    final existing = await _db
+        .from('digital_cards')
+        .select()
+        .eq('user_id', userId)
+        .order('created_at')
+        .limit(1);
+
+    if (existing.isNotEmpty) {
+      return _fetchWithItems(existing.first);
+    }
+
+    final userRows = await _db
+        .from('users')
+        .select('name, org_id')
+        .eq('id', userId)
+        .limit(1);
+
+    final userJson = userRows.isNotEmpty
+        ? userRows.first
+        : const <String, dynamic>{};
+    final resolvedName = (userJson['name'] as String?)?.trim();
+    final slug = _generateSlug(
+      resolvedName == null || resolvedName.isEmpty ? 'usuario' : resolvedName,
+      userId,
+    );
+
+    final created = await _db
+        .from('digital_cards')
+        .insert({
+          'user_id': userId,
+          'org_id': userJson['org_id'],
+          'name': resolvedName ?? '',
+          'job_title': '',
+          'company': '',
+          'bio': '',
+          'public_slug': slug,
+          'is_active': true,
+          'theme_style': 'white',
+          'layout_style': 'centered',
+          'primary_color': 0xFFEF6820,
+          'bg_style': 'plain',
+        })
+        .select()
+        .single();
+
+    return _fetchWithItems(created);
+  }
+
+  static String _generateSlug(String name, String uid) {
+    final base = name
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9\s]'), '')
+        .trim()
+        .replaceAll(RegExp(r'\s+'), '-');
+    final normalized = base.isEmpty ? 'usuario' : base;
+    final suffix = uid.substring(0, 6);
+    return '$normalized-$suffix';
   }
 
   // ─── Shared helper ────────────────────────────────────────────────────────

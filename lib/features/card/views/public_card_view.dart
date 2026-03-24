@@ -119,8 +119,8 @@ class _PublicCardViewState extends State<PublicCardView> {
 
   Future<void> _activate() async {
     if (!appState.isAuthenticated) {
-      // Save serial in extra so after login we can return here
-      context.push('/register', extra: {'pendingNfc': widget.nfcSerial});
+      final serial = Uri.encodeComponent(widget.nfcSerial!);
+      context.go('/?pendingNfc=$serial');
       return;
     }
     setState(() {

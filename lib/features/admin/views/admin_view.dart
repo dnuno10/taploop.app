@@ -1,12 +1,19 @@
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme_extensions.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../core/data/app_state.dart';
 import '../../../core/data/repositories/admin_repository.dart';
+import '../../../core/data/repositories/card_repository.dart';
+import '../../../core/services/supabase_service.dart';
 import '../../../core/widgets/taploop_button.dart';
 import '../../../core/widgets/taploop_text_field.dart';
 import '../../analytics/models/team_member_model.dart';
@@ -446,12 +453,12 @@ class _AdminViewState extends State<AdminView> {
       ..sort((a, b) => b.member.leads.compareTo(a.member.leads));
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.bgPage,
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
             child: Container(
-              color: Colors.white,
+              color: context.bgCard,
               padding: EdgeInsets.fromLTRB(hPad, 24, hPad, 18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -461,7 +468,7 @@ class _AdminViewState extends State<AdminView> {
                     style: GoogleFonts.outfit(
                       fontSize: 28,
                       fontWeight: FontWeight.w800,
-                      color: const Color(0xFF181411),
+                      color: context.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -469,7 +476,7 @@ class _AdminViewState extends State<AdminView> {
                     'Controla el equipo, formularios, calendario y configuración operativa desde un solo lugar.',
                     style: GoogleFonts.dmSans(
                       fontSize: 13,
-                      color: const Color(0xFF6F6A64),
+                      color: context.textSecondary,
                     ),
                   ),
                 ],
@@ -482,9 +489,9 @@ class _AdminViewState extends State<AdminView> {
               child: Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: context.bgCard,
                   borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: const Color(0xFFE8E8E3)),
+                  border: Border.all(color: context.borderColor),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -577,14 +584,89 @@ class _AdminViewState extends State<AdminView> {
 
 // ─── Company Header ───────────────────────────────────────────────────────────
 
-class _CompanyHeader extends StatelessWidget {
+class _CompanyHeader extends StatefulWidget {
   const _CompanyHeader();
+
+  @override
+  State<_CompanyHeader> createState() => _CompanyHeaderState();
+}
+
+class _CompanyHeaderState extends State<_CompanyHeader> {
+  bool _uploading = false;
 
   String _initials(String company) {
     final parts = company.trim().split(' ');
     if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     if (parts[0].isNotEmpty) return parts[0][0].toUpperCase();
     return '?';
+  }
+
+  Future<void> _pickAndUploadLogo(DigitalCardModel card) async {
+    if (!kIsWeb || _uploading) return;
+
+    final input = html.FileUploadInputElement()
+      ..accept = 'image/jpeg,image/png,image/webp,image/svg+xml';
+    input.click();
+    await input.onChange.first;
+    final file = input.files?.first;
+    if (file == null) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('La imagen supera el limite de 5 MB.')),
+        );
+      }
+      return;
+    }
+
+    setState(() => _uploading = true);
+    try {
+      final reader = html.FileReader();
+      reader.readAsArrayBuffer(file);
+      await reader.onLoad.first;
+      final bytes = reader.result as Uint8List;
+
+      final userId = card.userId ?? 'unknown';
+      final ext = file.type.contains('png')
+          ? 'png'
+          : file.type.contains('svg')
+          ? 'svg'
+          : 'jpg';
+      final path = '$userId/${card.id}/logo.$ext';
+
+      await SupabaseService.client.storage
+          .from('logos')
+          .uploadBinary(
+            path,
+            bytes,
+            fileOptions: FileOptions(upsert: true, contentType: file.type),
+          );
+
+      final rawUrl = SupabaseService.client.storage
+          .from('logos')
+          .getPublicUrl(path);
+      final updated = card.copyWith(
+        companyLogoUrl: '$rawUrl?t=${DateTime.now().millisecondsSinceEpoch}',
+      );
+
+      await CardRepository.saveCard(updated);
+      appState.updateCard(updated);
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Imagen actualizada.')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error al subir imagen: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
   }
 
   @override
@@ -595,22 +677,20 @@ class _CompanyHeader extends StatelessWidget {
         final card = appState.currentCard;
         final company = card?.company ?? '';
         final logoUrl = card?.companyLogoUrl;
-        return Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: context.bgCard,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: context.borderColor),
-          ),
-          child: Row(
-            children: [
-              Container(
+        final isLiomont = company.trim().toLowerCase() == 'liomont';
+        final content = Row(
+          children: [
+            GestureDetector(
+              onTap: card == null ? null : () => _pickAndUploadLogo(card),
+              child: Container(
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: context.bgPage,
+                  color: isLiomont ? Colors.transparent : context.bgPage,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: context.borderColor),
+                  border: isLiomont
+                      ? null
+                      : Border.all(color: context.borderColor),
                   image: logoUrl != null
                       ? DecorationImage(
                           image: NetworkImage(logoUrl),
@@ -631,33 +711,73 @@ class _CompanyHeader extends StatelessWidget {
                       )
                     : null,
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      company,
-                      style: GoogleFonts.outfit(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: context.textPrimary,
-                      ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    company,
+                    style: GoogleFonts.outfit(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: context.textPrimary,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Centro de administración del equipo y su operación comercial.',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 13,
-                        color: context.textSecondary,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Centro de administración del equipo y su operación comercial.',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 13,
+                      color: context.textSecondary,
+                    ),
+                  ),
+                  if (isLiomont) ...[
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: card == null
+                          ? null
+                          : () => _pickAndUploadLogo(card),
+                      icon: _uploading
+                          ? SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: context.textPrimary,
+                              ),
+                            )
+                          : const Icon(Icons.upload_outlined, size: 16),
+                      label: Text(_uploading ? 'Cargando...' : 'Cargar imagen'),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(0, 32),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        foregroundColor: context.textPrimary,
                       ),
                     ),
                   ],
-                ),
+                ],
               ),
-            ],
-          ),
-        ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.05, end: 0);
+            ),
+          ],
+        );
+
+        return (isLiomont
+                ? content
+                : Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: context.bgCard,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: context.borderColor),
+                    ),
+                    child: content,
+                  ))
+            .animate()
+            .fadeIn(duration: 400.ms)
+            .slideY(begin: 0.05, end: 0);
       },
     );
   }
@@ -1701,7 +1821,7 @@ class _EditMemberDialogState extends State<_EditMemberDialog>
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: selected ? context.textPrimary : Colors.white,
+                      color: selected ? context.textPrimary : context.bgCard,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color: selected
@@ -1753,7 +1873,7 @@ class _EditMemberDialogState extends State<_EditMemberDialog>
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: selected ? context.textPrimary : Colors.white,
+                      color: selected ? context.textPrimary : context.bgCard,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color: selected
@@ -1864,7 +1984,7 @@ class _EditMemberDialogState extends State<_EditMemberDialog>
                 decoration: BoxDecoration(
                   color: selected
                       ? AppColors.primary.withValues(alpha: 0.08)
-                      : Colors.white,
+                      : context.bgCard,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: selected ? AppColors.primary : context.borderColor,
@@ -1942,7 +2062,7 @@ class _EditMemberDialogState extends State<_EditMemberDialog>
                   ),
                 ),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: context.bgInput,
               ),
             ),
             const SizedBox(height: 8),
@@ -1959,7 +2079,7 @@ class _EditMemberDialogState extends State<_EditMemberDialog>
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.bgCard,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: context.borderColor),
               ),
@@ -2068,7 +2188,7 @@ class _EditMemberDialogState extends State<_EditMemberDialog>
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.bgCard,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: context.borderColor),
           ),
@@ -2182,7 +2302,7 @@ class _EditMemberDialogState extends State<_EditMemberDialog>
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.bgCard,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: context.borderColor),
           ),
@@ -2384,7 +2504,7 @@ class _AdminEditEmptyState extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.bgCard,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: context.borderColor),
       ),

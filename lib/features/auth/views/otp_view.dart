@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme_extensions.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/data/app_state.dart';
 import '../widgets/auth_header.dart';
@@ -75,13 +76,11 @@ class _OtpViewState extends State<OtpView> {
       _errorMsg = null;
     });
     try {
-      print('[OtpView] Verificando código para ${widget.email}');
       final user = await AuthService.verifyOtp(
         email: widget.email,
         token: code,
         name: widget.name,
       );
-      print('[OtpView] Verificación exitosa — id=${user.id}');
       if (!mounted) return;
       appState.setUser(user);
       final card = await AuthService.fetchUserCard(user.id);
@@ -94,7 +93,6 @@ class _OtpViewState extends State<OtpView> {
         context.go('/');
       }
     } catch (e) {
-      print('[OtpView] ERROR: $e');
       if (mounted) {
         setState(() {
           _loading = false;
@@ -184,7 +182,7 @@ class _OtpViewState extends State<OtpView> {
               fontSize: 30,
               fontWeight: FontWeight.w700,
               letterSpacing: 10,
-              color: AppColors.black,
+              color: context.textPrimary,
             ),
             decoration: InputDecoration(
               counterText: '',
@@ -193,10 +191,10 @@ class _OtpViewState extends State<OtpView> {
                 fontSize: 30,
                 fontWeight: FontWeight.w300,
                 letterSpacing: 10,
-                color: AppColors.border,
+                color: context.borderStrong,
               ),
               filled: true,
-              fillColor: AppColors.surface,
+              fillColor: context.bgInput,
               contentPadding: const EdgeInsets.symmetric(
                 vertical: 20,
                 horizontal: 24,
@@ -262,7 +260,7 @@ class _OtpViewState extends State<OtpView> {
                     'Reenviar código en ${_resendCountdown}s',
                     style: GoogleFonts.dmSans(
                       fontSize: 13,
-                      color: AppColors.grey,
+                      color: context.textSecondary,
                     ),
                   )
                 : GestureDetector(
@@ -301,7 +299,10 @@ class _OtpViewState extends State<OtpView> {
               },
               child: Text(
                 '← Cambiar correo',
-                style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.grey),
+                style: GoogleFonts.dmSans(
+                  fontSize: 13,
+                  color: context.textSecondary,
+                ),
               ),
             ),
           ),

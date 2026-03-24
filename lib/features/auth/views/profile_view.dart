@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme_extensions.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../core/widgets/taploop_button.dart';
 import '../../../core/widgets/taploop_text_field.dart';
@@ -120,10 +121,10 @@ class _ProfileViewState extends State<ProfileView> {
     final isTablet = Responsive.isTablet(context);
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.bgPage,
       appBar: AppBar(
         title: const Text('Mi perfil'),
-        backgroundColor: AppColors.white,
+        backgroundColor: context.bgCard,
         actions: [
           if (_edited)
             Padding(
@@ -168,10 +169,10 @@ class _ProfileViewState extends State<ProfileView> {
                       TapLoopTextField(
                         label: 'Nombre completo',
                         controller: _nameCtrl,
-                        prefixIcon: const Icon(
+                        prefixIcon: Icon(
                           Icons.person_outline,
                           size: 20,
-                          color: AppColors.grey,
+                          color: context.textMuted,
                         ),
                         validator: (v) => (v == null || v.trim().isEmpty)
                             ? 'Nombre requerido'
@@ -182,30 +183,30 @@ class _ProfileViewState extends State<ProfileView> {
                         label: 'Teléfono',
                         controller: _phoneCtrl,
                         keyboardType: TextInputType.phone,
-                        prefixIcon: const Icon(
+                        prefixIcon: Icon(
                           Icons.phone_outlined,
                           size: 20,
-                          color: AppColors.grey,
+                          color: context.textMuted,
                         ),
                       ),
                       const SizedBox(height: 16),
                       TapLoopTextField(
                         label: 'Cargo / Puesto',
                         controller: _jobCtrl,
-                        prefixIcon: const Icon(
+                        prefixIcon: Icon(
                           Icons.work_outline,
                           size: 20,
-                          color: AppColors.grey,
+                          color: context.textMuted,
                         ),
                       ),
                       const SizedBox(height: 16),
                       TapLoopTextField(
                         label: 'Empresa',
                         controller: _companyCtrl,
-                        prefixIcon: const Icon(
+                        prefixIcon: Icon(
                           Icons.business_outlined,
                           size: 20,
-                          color: AppColors.grey,
+                          color: context.textMuted,
                         ),
                       ),
                     ],
@@ -220,10 +221,10 @@ class _ProfileViewState extends State<ProfileView> {
                         label: 'Correo electrónico',
                         controller: _emailCtrl,
                         keyboardType: TextInputType.emailAddress,
-                        prefixIcon: const Icon(
+                        prefixIcon: Icon(
                           Icons.mail_outline,
                           size: 20,
-                          color: AppColors.grey,
+                          color: context.textMuted,
                         ),
                         suffixIcon:
                             (appState.currentUser?.emailVerified ?? false)
@@ -264,7 +265,7 @@ class _ProfileViewState extends State<ProfileView> {
                         icon: const Icon(
                           Icons.lock_reset_outlined,
                           size: 18,
-                          color: AppColors.black,
+                          color: AppColors.primary,
                         ),
                       ),
                     ],
@@ -331,9 +332,9 @@ class _AvatarSection extends StatelessWidget {
                   width: 28,
                   height: 28,
                   decoration: BoxDecoration(
-                    color: AppColors.black,
+                    color: context.textPrimary,
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.white, width: 2),
+                    border: Border.all(color: context.bgCard, width: 2),
                   ),
                   child: const Icon(
                     Icons.camera_alt_outlined,
@@ -355,13 +356,16 @@ class _AvatarSection extends StatelessWidget {
                 style: GoogleFonts.outfit(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.black,
+                  color: context.textPrimary,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 user.email,
-                style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.grey),
+                style: GoogleFonts.dmSans(
+                  fontSize: 13,
+                  color: context.textSecondary,
+                ),
               ),
               if (user.emailVerified) ...[
                 const SizedBox(height: 4),
@@ -404,9 +408,9 @@ class _SectionCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: context.bgCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -416,7 +420,7 @@ class _SectionCard extends StatelessWidget {
             style: GoogleFonts.outfit(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: AppColors.black,
+              color: context.textPrimary,
             ),
           ),
           const SizedBox(height: 16),
@@ -455,7 +459,10 @@ class _DangerZone extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             'Estas acciones son permanentes e irreversibles.',
-            style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.grey),
+            style: GoogleFonts.dmSans(
+              fontSize: 13,
+              color: context.textSecondary,
+            ),
           ),
           const SizedBox(height: 16),
           SizedBox(
@@ -532,8 +539,8 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
     return Container(
       padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottom),
-      decoration: const BoxDecoration(
-        color: AppColors.white,
+      decoration: BoxDecoration(
+        color: context.bgCard,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Form(
@@ -549,7 +556,7 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: context.borderColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -643,7 +650,7 @@ class _DeleteAccountDialog extends StatelessWidget {
               'Esta acción eliminará permanentemente tu cuenta y todos tus datos. No podrás recuperarlos.',
               style: GoogleFonts.dmSans(
                 fontSize: 14,
-                color: AppColors.grey,
+                color: context.textSecondary,
                 height: 1.5,
               ),
               textAlign: TextAlign.center,
@@ -685,7 +692,7 @@ class _DeleteAccountDialog extends StatelessWidget {
                   'Cancelar',
                   style: GoogleFonts.dmSans(
                     fontWeight: FontWeight.w600,
-                    color: AppColors.black,
+                    color: context.textPrimary,
                   ),
                 ),
               ),

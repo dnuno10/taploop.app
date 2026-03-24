@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme_extensions.dart';
 import '../../../core/services/auth_service.dart';
 import '../widgets/auth_header.dart';
 import '../widgets/auth_layout.dart';
@@ -32,18 +33,20 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
     setState(() => _loading = true);
     try {
       await AuthService.resetPassword(_emailCtrl.text.trim());
-      if (mounted)
+      if (mounted) {
         setState(() {
           _loading = false;
           _sent = true;
         });
+      }
     } catch (_) {
       // Still show success to avoid email enumeration
-      if (mounted)
+      if (mounted) {
         setState(() {
           _loading = false;
           _sent = true;
         });
+      }
     }
   }
 
@@ -87,10 +90,10 @@ class _FormState extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: IconButton(
               onPressed: () => Navigator.pop(context),
-              icon: const Icon(
+              icon: Icon(
                 Icons.arrow_back_ios_new_rounded,
                 size: 18,
-                color: AppColors.black,
+                color: context.textPrimary,
               ),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
@@ -110,10 +113,10 @@ class _FormState extends StatelessWidget {
             controller: emailCtrl,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.done,
-            prefixIcon: const Icon(
+            prefixIcon: Icon(
               Icons.mail_outline,
               size: 20,
-              color: AppColors.grey,
+              color: context.textMuted,
             ),
             validator: (v) {
               if (v == null || v.trim().isEmpty) return 'Ingresa tu correo';
@@ -184,7 +187,7 @@ class _SuccessState extends StatelessWidget {
           style: GoogleFonts.outfit(
             fontSize: 24,
             fontWeight: FontWeight.w700,
-            color: AppColors.black,
+            color: context.textPrimary,
           ),
           textAlign: TextAlign.center,
         ),
@@ -193,7 +196,7 @@ class _SuccessState extends StatelessWidget {
           'Enviamos un enlace de recuperación a\n$email',
           style: GoogleFonts.dmSans(
             fontSize: 14,
-            color: AppColors.grey,
+            color: context.textSecondary,
             height: 1.6,
           ),
           textAlign: TextAlign.center,
@@ -208,7 +211,10 @@ class _SuccessState extends StatelessWidget {
         Center(
           child: Text(
             '¿No recibiste el correo? Revisa tu carpeta de spam',
-            style: GoogleFonts.dmSans(fontSize: 13, color: AppColors.grey),
+            style: GoogleFonts.dmSans(
+              fontSize: 13,
+              color: context.textSecondary,
+            ),
             textAlign: TextAlign.center,
           ),
         ),

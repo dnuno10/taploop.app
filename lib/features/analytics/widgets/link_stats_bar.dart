@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/link_stat_model.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme_extensions.dart';
 
 class LinkStatsBar extends StatelessWidget {
   final LinkStatModel stat;
@@ -20,7 +21,7 @@ class LinkStatsBar extends StatelessWidget {
                 style: GoogleFonts.dmSans(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.darkGrey,
+                  color: context.textSecondary,
                 ),
               ),
             ),
@@ -29,7 +30,7 @@ class LinkStatsBar extends StatelessWidget {
               style: GoogleFonts.outfit(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: AppColors.black,
+                color: context.textPrimary,
               ),
             ),
             const SizedBox(width: 6),
@@ -37,7 +38,10 @@ class LinkStatsBar extends StatelessWidget {
               width: 38,
               child: Text(
                 '${(stat.percentage * 100).toInt()}%',
-                style: GoogleFonts.dmSans(fontSize: 12, color: AppColors.grey),
+                style: GoogleFonts.dmSans(
+                  fontSize: 12,
+                  color: context.textSecondary,
+                ),
                 textAlign: TextAlign.end,
               ),
             ),
@@ -49,7 +53,7 @@ class LinkStatsBar extends StatelessWidget {
           child: LinearProgressIndicator(
             value: stat.percentage,
             minHeight: 6,
-            backgroundColor: AppColors.border,
+            backgroundColor: context.borderColor,
             valueColor: AlwaysStoppedAnimation<Color>(
               _platformColor(stat.platform),
             ),

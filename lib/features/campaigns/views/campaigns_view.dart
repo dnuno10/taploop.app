@@ -6,6 +6,7 @@ import '../../../core/data/repositories/campaign_repository.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme_extensions.dart';
 import '../../../core/utils/responsive.dart';
+import '../../../core/widgets/card_initial_setup_state.dart';
 import '../models/campaign_model.dart';
 
 String _fmtDate(DateTime d) {
@@ -40,7 +41,19 @@ class _CampaignsViewState extends State<CampaignsView> {
   @override
   void initState() {
     super.initState();
+    appState.addListener(_onAppStateChanged);
     _load();
+  }
+
+  @override
+  void dispose() {
+    appState.removeListener(_onAppStateChanged);
+    super.dispose();
+  }
+
+  void _onAppStateChanged() {
+    if (!mounted) return;
+    setState(() {});
   }
 
   Future<void> _load() async {
@@ -161,6 +174,7 @@ class _CampaignsViewState extends State<CampaignsView> {
 
   @override
   Widget build(BuildContext context) {
+    final hasLinkedCard = appState.currentCard != null;
     final active = _campaigns
         .where((c) => c.status == CampaignStatus.active)
         .toList();
@@ -172,12 +186,12 @@ class _CampaignsViewState extends State<CampaignsView> {
         .toList();
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.bgPage,
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
             child: Container(
-              color: Colors.white,
+              color: context.bgCard,
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 18),
               child: Wrap(
                 spacing: 12,
@@ -192,7 +206,7 @@ class _CampaignsViewState extends State<CampaignsView> {
                         style: GoogleFonts.outfit(
                           fontSize: 28,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFF181411),
+                          color: context.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -200,134 +214,150 @@ class _CampaignsViewState extends State<CampaignsView> {
                         'Organiza activaciones, eventos y seguimiento comercial con una vista clara.',
                         style: GoogleFonts.dmSans(
                           fontSize: 13,
-                          color: const Color(0xFF6F6A64),
+                          color: context.textSecondary,
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(width: 12),
-                  FilledButton.icon(
-                    onPressed: _showNewCampaignSheet,
-                    icon: const Icon(Icons.add, size: 18),
-                    label: Text(
-                      'Nueva',
-                      style: GoogleFonts.dmSans(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
+                  if (hasLinkedCard)
+                    FilledButton.icon(
+                      onPressed: _showNewCampaignSheet,
+                      icon: const Icon(Icons.add, size: 18),
+                      label: Text(
+                        'Nueva',
+                        style: GoogleFonts.dmSans(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: AppColors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                       ),
                     ),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
           ),
-
-          // ── Summary Strip ──────────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: const Color(0xFFE8E8E3)),
-                ),
-                child: _SummaryStrip(campaigns: _campaigns),
+          if (!hasLinkedCard)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+                child: CardInitialSetupState(onLinked: () => setState(() {})),
               ),
-            ),
-          ),
-
-          if (_loading)
-            const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator()),
             )
           else ...[
-            // ── Active ─────────────────────────────────────────────────────
-            if (active.isNotEmpty) ...[
-              _SectionHeader(label: 'Activas', count: active.length),
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (_, i) => _CampaignCard(
-                      campaign: active[i],
-                      onDeleted: () => setState(
-                        () =>
-                            _campaigns.removeWhere((c) => c.id == active[i].id),
-                      ),
-                      onUpdated: (u) => setState(() {
-                        final idx = _campaigns.indexWhere((c) => c.id == u.id);
-                        if (idx != -1) _campaigns[idx] = u;
-                      }),
-                      onEdit: () => _showEditCampaignSheet(active[i]),
-                    ),
-                    childCount: active.length,
+            // ── Summary Strip ──────────────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: context.bgCard,
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(color: context.borderColor),
                   ),
+                  child: _SummaryStrip(campaigns: _campaigns),
                 ),
               ),
-            ],
+            ),
 
-            // ── Upcoming ───────────────────────────────────────────────────
-            if (upcoming.isNotEmpty) ...[
-              _SectionHeader(label: 'Próximas', count: upcoming.length),
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (_, i) => _CampaignCard(
-                      campaign: upcoming[i],
-                      onDeleted: () => setState(
-                        () => _campaigns.removeWhere(
-                          (c) => c.id == upcoming[i].id,
+            if (_loading)
+              const SliverFillRemaining(
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else ...[
+              // ── Active ─────────────────────────────────────────────────────
+              if (active.isNotEmpty) ...[
+                _SectionHeader(label: 'Activas', count: active.length),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (_, i) => _CampaignCard(
+                        campaign: active[i],
+                        onDeleted: () => setState(
+                          () => _campaigns.removeWhere(
+                            (c) => c.id == active[i].id,
+                          ),
                         ),
+                        onUpdated: (u) => setState(() {
+                          final idx = _campaigns.indexWhere(
+                            (c) => c.id == u.id,
+                          );
+                          if (idx != -1) _campaigns[idx] = u;
+                        }),
+                        onEdit: () => _showEditCampaignSheet(active[i]),
                       ),
-                      onUpdated: (u) => setState(() {
-                        final idx = _campaigns.indexWhere((c) => c.id == u.id);
-                        if (idx != -1) _campaigns[idx] = u;
-                      }),
-                      onEdit: () => _showEditCampaignSheet(upcoming[i]),
+                      childCount: active.length,
                     ),
-                    childCount: upcoming.length,
                   ),
                 ),
-              ),
-            ],
+              ],
 
-            // ── Finished ───────────────────────────────────────────────────
-            if (finished.isNotEmpty) ...[
-              _SectionHeader(label: 'Terminadas', count: finished.length),
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (_, i) => _CampaignCard(
-                      campaign: finished[i],
-                      onDeleted: () => setState(
-                        () => _campaigns.removeWhere(
-                          (c) => c.id == finished[i].id,
+              // ── Upcoming ───────────────────────────────────────────────────
+              if (upcoming.isNotEmpty) ...[
+                _SectionHeader(label: 'Próximas', count: upcoming.length),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (_, i) => _CampaignCard(
+                        campaign: upcoming[i],
+                        onDeleted: () => setState(
+                          () => _campaigns.removeWhere(
+                            (c) => c.id == upcoming[i].id,
+                          ),
                         ),
+                        onUpdated: (u) => setState(() {
+                          final idx = _campaigns.indexWhere(
+                            (c) => c.id == u.id,
+                          );
+                          if (idx != -1) _campaigns[idx] = u;
+                        }),
+                        onEdit: () => _showEditCampaignSheet(upcoming[i]),
                       ),
-                      onUpdated: (u) => setState(() {
-                        final idx = _campaigns.indexWhere((c) => c.id == u.id);
-                        if (idx != -1) _campaigns[idx] = u;
-                      }),
-                      onEdit: () => _showEditCampaignSheet(finished[i]),
+                      childCount: upcoming.length,
                     ),
-                    childCount: finished.length,
                   ),
                 ),
-              ),
-            ],
+              ],
 
-            const SliverToBoxAdapter(child: SizedBox(height: 40)),
+              // ── Finished ───────────────────────────────────────────────────
+              if (finished.isNotEmpty) ...[
+                _SectionHeader(label: 'Terminadas', count: finished.length),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (_, i) => _CampaignCard(
+                        campaign: finished[i],
+                        onDeleted: () => setState(
+                          () => _campaigns.removeWhere(
+                            (c) => c.id == finished[i].id,
+                          ),
+                        ),
+                        onUpdated: (u) => setState(() {
+                          final idx = _campaigns.indexWhere(
+                            (c) => c.id == u.id,
+                          );
+                          if (idx != -1) _campaigns[idx] = u;
+                        }),
+                        onEdit: () => _showEditCampaignSheet(finished[i]),
+                      ),
+                      childCount: finished.length,
+                    ),
+                  ),
+                ),
+              ],
+
+              const SliverToBoxAdapter(child: SizedBox(height: 40)),
+            ],
           ],
         ],
       ),

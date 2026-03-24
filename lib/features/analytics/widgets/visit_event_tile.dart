@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/visit_event_model.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme_extensions.dart';
 
 class VisitEventTile extends StatelessWidget {
   final VisitEventModel event;
@@ -37,7 +38,7 @@ class VisitEventTile extends StatelessWidget {
                         style: GoogleFonts.dmSans(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.black,
+                          color: context.textPrimary,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -47,7 +48,7 @@ class VisitEventTile extends StatelessWidget {
                       event.formattedTime,
                       style: GoogleFonts.dmSans(
                         fontSize: 11,
-                        color: AppColors.grey,
+                        color: context.textSecondary,
                       ),
                     ),
                   ],
@@ -56,17 +57,17 @@ class VisitEventTile extends StatelessWidget {
                 Row(
                   children: [
                     if (!_isInteraction) ...[
-                      const Icon(
+                      Icon(
                         Icons.place_outlined,
                         size: 12,
-                        color: AppColors.grey,
+                        color: context.textSecondary,
                       ),
                       const SizedBox(width: 3),
                       Text(
                         event.locationDisplay,
                         style: GoogleFonts.dmSans(
                           fontSize: 12,
-                          color: AppColors.grey,
+                          color: context.textSecondary,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -75,7 +76,7 @@ class VisitEventTile extends StatelessWidget {
                         event.formattedDate,
                         style: GoogleFonts.dmSans(
                           fontSize: 12,
-                          color: AppColors.grey,
+                          color: context.textSecondary,
                         ),
                       ),
                       const SizedBox(width: 8),

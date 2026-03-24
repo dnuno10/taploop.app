@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/data/app_state.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme_extensions.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../core/widgets/taploop_logo.dart';
 import '../../admin/views/admin_view.dart';
@@ -14,13 +15,6 @@ import '../../card/views/edit_card_view.dart';
 import '../../card/views/share_card_view.dart';
 import 'dashboard_view.dart';
 import 'settings_view.dart';
-
-const _shellFrame = Color(0xFFF5F5F3);
-const _shellPanel = Color(0xFFFFFFFF);
-const _shellPanelSoft = Color(0xFFFFFFFF);
-const _shellBorder = Color(0xFFE8E8E3);
-const _shellInk = Color(0xFF171412);
-const _shellMuted = Color(0xFF6F6A64);
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
@@ -132,7 +126,7 @@ class _DesktopShell extends StatelessWidget {
     final jobTitle = user?.jobTitle?.trim();
 
     return Scaffold(
-      backgroundColor: _shellFrame,
+      backgroundColor: context.bgPage,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(18),
@@ -141,9 +135,9 @@ class _DesktopShell extends StatelessWidget {
               Container(
                 width: 248,
                 decoration: BoxDecoration(
-                  color: _shellPanel,
+                  color: context.bgCard,
                   borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: _shellBorder),
+                  border: Border.all(color: context.borderColor),
                 ),
                 padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
                 child: Column(
@@ -156,7 +150,7 @@ class _DesktopShell extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: _shellPanelSoft,
+                        color: context.bgSubtle,
                         borderRadius: BorderRadius.circular(22),
                       ),
                       child: Row(
@@ -178,7 +172,7 @@ class _DesktopShell extends StatelessWidget {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: GoogleFonts.outfit(
-                                    color: _shellInk,
+                                    color: context.textPrimary,
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -191,7 +185,7 @@ class _DesktopShell extends StatelessWidget {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: GoogleFonts.dmSans(
-                                    color: _shellMuted,
+                                    color: context.textSecondary,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -206,7 +200,7 @@ class _DesktopShell extends StatelessWidget {
                     Text(
                       'MENÚ',
                       style: GoogleFonts.dmSans(
-                        color: _shellMuted,
+                        color: context.textMuted,
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 1.2,
@@ -243,7 +237,7 @@ class _DesktopShell extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: _shellPanelSoft,
+                        color: context.bgSubtle,
                         borderRadius: BorderRadius.circular(22),
                       ),
                       child: Column(
@@ -252,7 +246,7 @@ class _DesktopShell extends StatelessWidget {
                           Text(
                             'TapLoop',
                             style: GoogleFonts.outfit(
-                              color: _shellInk,
+                              color: context.textPrimary,
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
                             ),
@@ -261,7 +255,7 @@ class _DesktopShell extends StatelessWidget {
                           Text(
                             'Interfaz clara, ligera y enfocada en el trabajo diario.',
                             style: GoogleFonts.dmSans(
-                              color: _shellMuted,
+                              color: context.textSecondary,
                               fontSize: 12,
                               height: 1.45,
                             ),
@@ -276,7 +270,7 @@ class _DesktopShell extends StatelessWidget {
                         appState.clear();
                       },
                       style: TextButton.styleFrom(
-                        foregroundColor: _shellMuted,
+                        foregroundColor: context.textSecondary,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 4,
                           vertical: 8,
@@ -298,9 +292,9 @@ class _DesktopShell extends StatelessWidget {
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: _shellPanel,
+                    color: context.bgCard,
                     borderRadius: BorderRadius.circular(34),
-                    border: Border.all(color: _shellBorder),
+                    border: Border.all(color: context.borderColor),
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: IndexedStack(index: index, children: views),
@@ -328,18 +322,18 @@ class _MobileShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _shellFrame,
+      backgroundColor: context.bgPage,
       body: SafeArea(
         bottom: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
           child: Container(
             decoration: BoxDecoration(
-              color: _shellPanel,
+              color: context.bgCard,
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(28),
               ),
-              border: Border.all(color: _shellBorder),
+              border: Border.all(color: context.borderColor),
             ),
             clipBehavior: Clip.antiAlias,
             child: IndexedStack(index: index, children: views),
@@ -350,9 +344,9 @@ class _MobileShell extends StatelessWidget {
         minimum: const EdgeInsets.fromLTRB(12, 0, 12, 12),
         child: Container(
           decoration: BoxDecoration(
-            color: _shellPanel,
+            color: context.bgCard,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: _shellBorder),
+            border: Border.all(color: context.borderColor),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
           child: BottomNavigationBar(
@@ -362,7 +356,7 @@ class _MobileShell extends StatelessWidget {
             elevation: 0,
             backgroundColor: Colors.transparent,
             selectedItemColor: AppColors.primary,
-            unselectedItemColor: _shellMuted,
+            unselectedItemColor: context.textSecondary,
             selectedLabelStyle: GoogleFonts.dmSans(
               fontSize: 11,
               fontWeight: FontWeight.w700,
@@ -407,7 +401,11 @@ class _DesktopNavTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         child: Ink(
           decoration: BoxDecoration(
-            color: active ? const Color(0xFFF0EFEC) : Colors.transparent,
+            color: active
+                ? (context.isDark
+                      ? Colors.white.withValues(alpha: 0.06)
+                      : const Color(0xFFF3F1ED))
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(18),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -416,14 +414,14 @@ class _DesktopNavTile extends StatelessWidget {
               Icon(
                 active ? item.activeIcon : item.icon,
                 size: 18,
-                color: active ? AppColors.primary : _shellMuted,
+                color: active ? AppColors.primary : context.textSecondary,
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   item.label,
                   style: GoogleFonts.dmSans(
-                    color: active ? _shellInk : _shellMuted,
+                    color: active ? context.textPrimary : context.textSecondary,
                     fontSize: 14,
                     fontWeight: active ? FontWeight.w700 : FontWeight.w600,
                   ),
@@ -455,14 +453,14 @@ class _AvatarBadge extends StatelessWidget {
 
     return CircleAvatar(
       radius: radius,
-      backgroundColor: const Color(0xFFF0EFEC),
+      backgroundColor: context.bgSubtle,
       backgroundImage: hasImage ? NetworkImage(imageUrl) : null,
       child: hasImage
           ? null
           : Text(
               initials,
               style: GoogleFonts.outfit(
-                color: _shellInk,
+                color: context.textPrimary,
                 fontSize: radius * 0.82,
                 fontWeight: FontWeight.w700,
               ),

@@ -5,7 +5,9 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme_extensions.dart';
 import '../../../core/data/app_state.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../core/widgets/card_initial_setup_state.dart';
 import '../../../main.dart' show themeModeNotifier;
+import '../../auth/models/user_model.dart';
 import '../../card/models/digital_card_model.dart';
 
 class SettingsView extends StatefulWidget {
@@ -24,18 +26,36 @@ class _SettingsViewState extends State<SettingsView> {
     return ListenableBuilder(
       listenable: appState,
       builder: (context, _) {
+        final user = appState.currentUser;
         final card = appState.currentCard;
-        if (card == null) {
+        if (user == null) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
-        return _buildContent(context, card);
+        return _buildContent(context, user, card);
       },
     );
   }
 
-  Widget _buildContent(BuildContext context, DigitalCardModel card) {
+  Widget _buildContent(
+    BuildContext context,
+    UserModel user,
+    DigitalCardModel? card,
+  ) {
+    final displayName = (card?.name.isNotEmpty == true)
+        ? card!.name
+        : user.name;
+    final displayRole = [
+      if (card?.jobTitle.isNotEmpty == true) card!.jobTitle,
+      if (card?.company.isNotEmpty == true) card!.company,
+      if ((card?.jobTitle.isNotEmpty != true) &&
+          (user.jobTitle?.isNotEmpty == true))
+        user.jobTitle!,
+      if ((card?.company.isNotEmpty != true) && user.email.isNotEmpty)
+        user.email,
+    ].join(' · ');
+
     return Scaffold(
       backgroundColor: context.bgPage,
       appBar: AppBar(
@@ -58,6 +78,10 @@ class _SettingsViewState extends State<SettingsView> {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         children: [
+          if (card == null) ...[
+            CardInitialSetupState(onLinked: () => setState(() {})),
+            const SizedBox(height: 24),
+          ],
           // ─ Profile card ──────────────────────────────────
           Container(
             padding: const EdgeInsets.all(16),
@@ -72,7 +96,7 @@ class _SettingsViewState extends State<SettingsView> {
                   radius: 26,
                   backgroundColor: context.bgSubtle,
                   child: Text(
-                    _initials(card.name),
+                    _initials(displayName),
                     style: GoogleFonts.outfit(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -86,20 +110,21 @@ class _SettingsViewState extends State<SettingsView> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        card.name,
+                        displayName,
                         style: GoogleFonts.outfit(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
                           color: context.textPrimary,
                         ),
                       ),
-                      Text(
-                        '${card.jobTitle} · ${card.company}',
-                        style: GoogleFonts.dmSans(
-                          fontSize: 12,
-                          color: context.textSecondary,
+                      if (displayRole.isNotEmpty)
+                        Text(
+                          displayRole,
+                          style: GoogleFonts.dmSans(
+                            fontSize: 12,
+                            color: context.textSecondary,
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),

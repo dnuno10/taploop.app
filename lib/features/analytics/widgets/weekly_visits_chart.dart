@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme_extensions.dart';
 
 class WeeklyVisitsChart extends StatelessWidget {
   final List<int> visitsByDay;
@@ -17,11 +18,11 @@ class WeeklyVisitsChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const _all = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-    final _ref = referenceDate ?? DateTime.now();
+    const allDays = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+    final refDate = referenceDate ?? DateTime.now();
     final days = List.generate(7, (i) {
-      final d = _ref.subtract(Duration(days: 6 - i));
-      return _all[d.weekday - 1];
+      final d = refDate.subtract(Duration(days: 6 - i));
+      return allDays[d.weekday - 1];
     });
     final rawMax = visitsByDay.fold(0, (a, b) => a > b ? a : b).toDouble();
     final maxY = rawMax == 0 ? 5.0 : rawMax;
@@ -62,7 +63,7 @@ class WeeklyVisitsChart extends StatelessWidget {
                   value.toInt().toString(),
                   style: GoogleFonts.dmSans(
                     fontSize: 10,
-                    color: AppColors.lightGrey,
+                    color: context.textMuted,
                   ),
                 );
               },
@@ -82,7 +83,7 @@ class WeeklyVisitsChart extends StatelessWidget {
                     days[idx],
                     style: GoogleFonts.dmSans(
                       fontSize: 11,
-                      color: AppColors.grey,
+                      color: context.textSecondary,
                     ),
                   ),
                 );
@@ -94,7 +95,7 @@ class WeeklyVisitsChart extends StatelessWidget {
           show: true,
           horizontalInterval: maxY / 4,
           getDrawingHorizontalLine: (_) =>
-              FlLine(color: AppColors.border, strokeWidth: 1),
+              FlLine(color: context.borderColor, strokeWidth: 1),
           drawVerticalLine: false,
         ),
         borderData: FlBorderData(show: false),

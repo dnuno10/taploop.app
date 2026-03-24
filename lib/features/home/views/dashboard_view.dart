@@ -7,24 +7,16 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/data/app_state.dart';
 import '../../../core/data/repositories/analytics_repository.dart';
-import '../../../core/data/repositories/card_repository.dart';
 import '../../../core/data/repositories/lead_repository.dart';
-import '../../../core/services/auth_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme_extensions.dart';
 import '../../../core/utils/responsive.dart';
+import '../../../core/widgets/card_initial_setup_state.dart';
 import '../../analytics/models/analytics_summary_model.dart';
 import '../../analytics/models/lead_model.dart';
 import '../../analytics/models/link_stat_model.dart';
 import '../../analytics/models/visit_event_model.dart';
 import '../../card/models/digital_card_model.dart';
-
-const _pageBg = Color(0xFFFFFFFF);
-const _panelBg = Color(0xFFFFFFFF);
-const _panelStrong = Color(0xFFF7F7F5);
-const _border = Color(0xFFE8E8E3);
-const _ink = Color(0xFF181411);
-const _muted = Color(0xFF6F6A64);
-const _softTag = Color(0xFFF0EFEC);
 
 class DashboardView extends StatefulWidget {
   final void Function(int index) onNavigate;
@@ -39,7 +31,6 @@ class _DashboardViewState extends State<DashboardView> {
   AnalyticsSummaryModel? _analytics;
   List<LeadModel> _leads = [];
   bool _loading = true;
-  bool _linkingCard = false;
   String? _loadedCardId;
 
   @override
@@ -97,96 +88,10 @@ class _DashboardViewState extends State<DashboardView> {
     }
   }
 
-  Future<void> _openLinkCardDialog({
-    _LinkInputMode initialMode = _LinkInputMode.code,
-  }) async {
-    await showDialog<void>(
-      context: context,
-      builder: (context) => _LinkCardDialog(
-        initialMode: initialMode,
-        onSubmit: _linkCardFromInput,
-      ),
-    );
-  }
-
-  Future<_CardLinkResult> _linkCardFromInput(String rawValue) async {
-    final user = appState.currentUser;
-    if (user == null) {
-      return const _CardLinkResult(
-        success: false,
-        message: 'Necesitas iniciar sesión para vincular una tarjeta.',
-      );
-    }
-
-    final serial = _extractNfcSerial(rawValue);
-    if (serial == null) {
-      return const _CardLinkResult(
-        success: false,
-        message: 'Ingresa un código válido o pega la URL/QR de la tarjeta.',
-      );
-    }
-
-    if (mounted) {
-      setState(() => _linkingCard = true);
-    }
-
-    try {
-      final status = await CardRepository.checkNfcSerial(serial);
-      if (status == 'not_found') {
-        return const _CardLinkResult(
-          success: false,
-          message: 'No encontramos una tarjeta con ese código.',
-        );
-      }
-
-      if (status == 'assigned') {
-        final linkedCard = await CardRepository.fetchByNfcSerial(serial);
-        if (linkedCard != null && linkedCard.userId == user.id) {
-          final myCard = await AuthService.fetchUserCard(user.id) ?? linkedCard;
-          appState.setCard(myCard);
-          return const _CardLinkResult(
-            success: true,
-            message: 'Esta tarjeta ya estaba vinculada a tu cuenta.',
-          );
-        }
-        return const _CardLinkResult(
-          success: false,
-          message: 'Esta tarjeta ya está vinculada a otra cuenta.',
-        );
-      }
-
-      final activated = await CardRepository.activateNfcCard(serial);
-      if (!activated) {
-        return const _CardLinkResult(
-          success: false,
-          message: 'No se pudo vincular la tarjeta. Intenta de nuevo.',
-        );
-      }
-
-      final card =
-          await AuthService.fetchUserCard(user.id) ??
-          await CardRepository.fetchByNfcSerial(serial);
-      appState.setCard(card);
-      return const _CardLinkResult(
-        success: true,
-        message: 'Tarjeta vinculada correctamente desde el dashboard.',
-      );
-    } catch (_) {
-      return const _CardLinkResult(
-        success: false,
-        message: 'Ocurrió un error al vincular la tarjeta.',
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _linkingCard = false);
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _pageBg,
+      backgroundColor: context.bgPage,
       body: SafeArea(
         child: _loading
             ? const Center(child: CircularProgressIndicator())
@@ -211,11 +116,7 @@ class _DashboardViewState extends State<DashboardView> {
                         ),
                         const SizedBox(height: 20),
                         if (appState.currentCard == null)
-                          _UnlinkedWorkspaceCard(
-                            linkingCard: _linkingCard,
-                            onLinkCard: _openLinkCardDialog,
-                            onNavigate: widget.onNavigate,
-                          )
+                          CardInitialSetupState(onLinked: () => setState(() {}))
                         else if (isDesktop)
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -289,7 +190,7 @@ class _DashboardViewState extends State<DashboardView> {
                 subtitle: card?.publicSlug.isNotEmpty == true
                     ? '@${card!.publicSlug}'
                     : 'Sin slug publicado',
-                tone: _panelBg,
+                tone: context.bgCard,
                 icon: Icons.badge_outlined,
               ),
             ),
@@ -300,7 +201,7 @@ class _DashboardViewState extends State<DashboardView> {
                 value: '${analytics?.totalVisits ?? 0}',
                 delta: '${growth >= 0 ? '+' : ''}${growth.toStringAsFixed(0)}%',
                 deltaPositive: growth >= 0,
-                tone: _panelBg,
+                tone: context.bgCard,
                 icon: Icons.visibility_outlined,
               ),
             ),
@@ -310,7 +211,7 @@ class _DashboardViewState extends State<DashboardView> {
                 label: 'Interacciones',
                 value: '${analytics?.totalClicks ?? 0}',
                 subtitle: 'Clics en enlaces y CTA',
-                tone: _panelBg,
+                tone: context.bgCard,
                 icon: Icons.ads_click_outlined,
               ),
             ),
@@ -321,7 +222,7 @@ class _DashboardViewState extends State<DashboardView> {
                   label: 'Leads activos',
                   value: '$totalLeads',
                   subtitle: '$hotLeads listos para seguimiento',
-                  tone: _panelBg,
+                  tone: context.bgCard,
                   icon: Icons.groups_2_outlined,
                 ),
               ),
@@ -424,7 +325,7 @@ class _DashboardHeader extends StatelessWidget {
               Text(
                 'Panel principal',
                 style: GoogleFonts.outfit(
-                  color: _ink,
+                  color: context.textPrimary,
                   fontSize: 30,
                   fontWeight: FontWeight.w800,
                 ),
@@ -433,7 +334,7 @@ class _DashboardHeader extends StatelessWidget {
               Text(
                 'Monitorea visitas, leads y rendimiento de tu tarjeta TapLoop en un solo flujo.',
                 style: GoogleFonts.dmSans(
-                  color: _muted,
+                  color: context.textSecondary,
                   fontSize: 14,
                   height: 1.45,
                 ),
@@ -466,13 +367,13 @@ class _DashboardHeader extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: _panelBg,
+            color: context.bgCard,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: _border),
+            border: Border.all(color: context.borderColor),
           ),
           child: CircleAvatar(
             radius: 20,
-            backgroundColor: _softTag,
+            backgroundColor: context.bgSubtle,
             backgroundImage: user?.photoUrl?.isNotEmpty == true
                 ? NetworkImage(user!.photoUrl!)
                 : null,
@@ -481,7 +382,7 @@ class _DashboardHeader extends StatelessWidget {
                 : Text(
                     user?.initials ?? 'TL',
                     style: GoogleFonts.outfit(
-                      color: _ink,
+                      color: context.textPrimary,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -499,23 +400,23 @@ class _ShellSearchField extends StatelessWidget {
       decoration: InputDecoration(
         hintText: 'Buscar métricas, leads o campañas',
         hintStyle: GoogleFonts.dmSans(
-          color: _muted.withValues(alpha: 0.75),
+          color: context.textSecondary.withValues(alpha: 0.75),
           fontSize: 13,
         ),
-        prefixIcon: const Icon(Icons.search_rounded, color: _muted),
+        prefixIcon: Icon(Icons.search_rounded, color: context.textSecondary),
         filled: true,
-        fillColor: _panelBg,
+        fillColor: context.bgCard,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 14,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
-          borderSide: const BorderSide(color: _border),
+          borderSide: BorderSide(color: context.borderColor),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
-          borderSide: const BorderSide(color: _border),
+          borderSide: BorderSide(color: context.borderColor),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
@@ -549,19 +450,25 @@ class _HeaderButton extends StatelessWidget {
         child: Ink(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
           decoration: BoxDecoration(
-            color: _panelBg,
+            color: context.bgCard,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: filled ? AppColors.primary : _border),
+            border: Border.all(
+              color: filled ? AppColors.primary : context.borderColor,
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 17, color: filled ? AppColors.primary : _ink),
+              Icon(
+                icon,
+                size: 17,
+                color: filled ? AppColors.primary : context.textPrimary,
+              ),
               const SizedBox(width: 8),
               Text(
                 label,
                 style: GoogleFonts.dmSans(
-                  color: filled ? AppColors.primary : _ink,
+                  color: filled ? AppColors.primary : context.textPrimary,
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                 ),
@@ -569,148 +476,6 @@ class _HeaderButton extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _UnlinkedWorkspaceCard extends StatelessWidget {
-  final bool linkingCard;
-  final Future<void> Function({_LinkInputMode initialMode}) onLinkCard;
-  final ValueChanged<int> onNavigate;
-
-  const _UnlinkedWorkspaceCard({
-    required this.linkingCard,
-    required this.onLinkCard,
-    required this.onNavigate,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: _panelBg,
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: _border),
-      ),
-      child: Wrap(
-        spacing: 24,
-        runSpacing: 24,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _softTag,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    'Configuración inicial',
-                    style: GoogleFonts.dmSans(
-                      color: _ink,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Text(
-                  'Vincula tu tarjeta para desbloquear el dashboard completo.',
-                  style: GoogleFonts.outfit(
-                    color: _ink,
-                    fontSize: 34,
-                    fontWeight: FontWeight.w800,
-                    height: 1.1,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Cuando asocies la tarjeta podremos mostrar visitas, escaneos QR, interacciones y leads relevantes con el mismo orden de trabajo que necesita tu equipo.',
-                  style: GoogleFonts.dmSans(
-                    color: _muted,
-                    fontSize: 14,
-                    height: 1.6,
-                  ),
-                ),
-                const SizedBox(height: 22),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    _HeaderButton(
-                      label: linkingCard
-                          ? 'Vinculando...'
-                          : 'Vincular con código',
-                      icon: Icons.nfc_rounded,
-                      filled: true,
-                      onTap: linkingCard
-                          ? () {}
-                          : () => onLinkCard(initialMode: _LinkInputMode.code),
-                    ),
-                    _HeaderButton(
-                      label: 'Usar QR',
-                      icon: Icons.qr_code_scanner_rounded,
-                      filled: false,
-                      onTap: () => onLinkCard(initialMode: _LinkInputMode.qr),
-                    ),
-                    _HeaderButton(
-                      label: 'Diseñar tarjeta',
-                      icon: Icons.palette_outlined,
-                      filled: false,
-                      onTap: () => onNavigate(1),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Container(
-            width: 320,
-            height: 230,
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(26),
-              border: Border.all(color: _border),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Image.asset('assets/images/taploop-logo.png', height: 24),
-                    const Icon(Icons.wifi_rounded, color: _muted),
-                  ],
-                ),
-                const Spacer(),
-                Text(
-                  'Tarjeta TapLoop',
-                  style: GoogleFonts.outfit(
-                    color: _ink,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'NFC • QR • Leads • Analíticas',
-                  style: GoogleFonts.dmSans(color: _muted, fontSize: 13),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -742,14 +507,14 @@ class _StatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: tone,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: _border),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 18, color: _muted),
+              Icon(icon, size: 18, color: context.textSecondary),
               const Spacer(),
               if (delta != null)
                 Container(
@@ -758,7 +523,7 @@ class _StatCard extends StatelessWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: _panelStrong,
+                    color: context.bgSubtle,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
@@ -778,7 +543,7 @@ class _StatCard extends StatelessWidget {
           Text(
             label,
             style: GoogleFonts.dmSans(
-              color: _muted,
+              color: context.textSecondary,
               fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
@@ -787,7 +552,7 @@ class _StatCard extends StatelessWidget {
           Text(
             value,
             style: GoogleFonts.outfit(
-              color: _ink,
+              color: context.textPrimary,
               fontSize: 30,
               fontWeight: FontWeight.w800,
             ),
@@ -797,7 +562,7 @@ class _StatCard extends StatelessWidget {
             Text(
               subtitle!,
               style: GoogleFonts.dmSans(
-                color: _muted,
+                color: context.textSecondary,
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),
@@ -840,7 +605,7 @@ class _PerformancePanel extends StatelessWidget {
                     Text(
                       'Resumen de actividad',
                       style: GoogleFonts.outfit(
-                        color: _ink,
+                        color: context.textPrimary,
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
                       ),
@@ -848,7 +613,10 @@ class _PerformancePanel extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       'Comparativa semanal entre visitas, clics y toques NFC.',
-                      style: GoogleFonts.dmSans(color: _muted, fontSize: 13),
+                      style: GoogleFonts.dmSans(
+                        color: context.textSecondary,
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 ),
@@ -856,7 +624,7 @@ class _PerformancePanel extends StatelessWidget {
               Text(
                 'Últimos 7 días',
                 style: GoogleFonts.dmSans(
-                  color: _muted,
+                  color: context.textSecondary,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -885,7 +653,7 @@ class _PerformancePanel extends StatelessWidget {
                   horizontalInterval: leftInterval,
                   drawVerticalLine: false,
                   getDrawingHorizontalLine: (value) =>
-                      FlLine(color: _border, strokeWidth: 1),
+                      FlLine(color: context.borderColor, strokeWidth: 1),
                 ),
                 borderData: FlBorderData(show: false),
                 titlesData: FlTitlesData(
@@ -904,7 +672,7 @@ class _PerformancePanel extends StatelessWidget {
                         return Text(
                           value.toInt().toString(),
                           style: GoogleFonts.dmSans(
-                            color: _muted,
+                            color: context.textSecondary,
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
                           ),
@@ -927,7 +695,7 @@ class _PerformancePanel extends StatelessWidget {
                           child: Text(
                             labels[index],
                             style: GoogleFonts.dmSans(
-                              color: _muted,
+                              color: context.textSecondary,
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                             ),
@@ -1026,7 +794,7 @@ class _QuickActions extends StatelessWidget {
           Text(
             'Acciones rápidas',
             style: GoogleFonts.outfit(
-              color: _ink,
+              color: context.textPrimary,
               fontSize: 20,
               fontWeight: FontWeight.w700,
             ),
@@ -1034,7 +802,10 @@ class _QuickActions extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'Acciones clave para operar TapLoop sin cambiar de contexto.',
-            style: GoogleFonts.dmSans(color: _muted, fontSize: 13),
+            style: GoogleFonts.dmSans(
+              color: context.textSecondary,
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: 18),
           ...actions.map(
@@ -1077,13 +848,13 @@ class _ActionRow extends StatelessWidget {
         child: Ink(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: _panelBg,
+            color: context.bgCard,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: _border),
+            border: Border.all(color: context.borderColor),
           ),
           child: Row(
             children: [
-              Icon(icon, color: _muted, size: 18),
+              Icon(icon, color: context.textSecondary, size: 18),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -1092,7 +863,7 @@ class _ActionRow extends StatelessWidget {
                     Text(
                       label,
                       style: GoogleFonts.dmSans(
-                        color: _ink,
+                        color: context.textPrimary,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                       ),
@@ -1101,7 +872,7 @@ class _ActionRow extends StatelessWidget {
                     Text(
                       description,
                       style: GoogleFonts.dmSans(
-                        color: _muted,
+                        color: context.textSecondary,
                         fontSize: 12,
                         height: 1.35,
                       ),
@@ -1110,7 +881,11 @@ class _ActionRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(Icons.arrow_forward_rounded, color: _muted, size: 18),
+              Icon(
+                Icons.arrow_forward_rounded,
+                color: context.textSecondary,
+                size: 18,
+              ),
             ],
           ),
         ),
@@ -1161,7 +936,7 @@ class _CardPreviewPanel extends StatelessWidget {
               Text(
                 'Tarjeta',
                 style: GoogleFonts.outfit(
-                  color: _ink,
+                  color: context.textPrimary,
                   fontSize: 19,
                   fontWeight: FontWeight.w700,
                 ),
@@ -1178,8 +953,8 @@ class _CardPreviewPanel extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24),
-              color: Colors.white,
-              border: Border.all(color: _border),
+              color: context.bgCard,
+              border: Border.all(color: context.borderColor),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1190,7 +965,7 @@ class _CardPreviewPanel extends StatelessWidget {
                     Image.asset('assets/images/taploop-logo.png', height: 22),
                     Icon(
                       card.isActive ? Icons.check_circle : Icons.pause_circle,
-                      color: _muted,
+                      color: context.textSecondary,
                       size: 18,
                     ),
                   ],
@@ -1199,7 +974,7 @@ class _CardPreviewPanel extends StatelessWidget {
                 Text(
                   card.name.isNotEmpty ? card.name : 'Perfil TapLoop',
                   style: GoogleFonts.outfit(
-                    color: _ink,
+                    color: context.textPrimary,
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
                   ),
@@ -1210,13 +985,16 @@ class _CardPreviewPanel extends StatelessWidget {
                     if (card.jobTitle.isNotEmpty) card.jobTitle,
                     if (card.company.isNotEmpty) card.company,
                   ].join(' • '),
-                  style: GoogleFonts.dmSans(color: _muted, fontSize: 12),
+                  style: GoogleFonts.dmSans(
+                    color: context.textSecondary,
+                    fontSize: 12,
+                  ),
                 ),
                 const SizedBox(height: 26),
                 Text(
                   '@${card.publicSlug}',
                   style: GoogleFonts.dmSans(
-                    color: _ink,
+                    color: context.textPrimary,
                     letterSpacing: 1.2,
                     fontWeight: FontWeight.w700,
                   ),
@@ -1240,11 +1018,6 @@ class _ConversionPanel extends StatelessWidget {
     final totalVisits = math.max(analytics?.totalVisits ?? 0, 1);
     final metrics = [
       (
-        label: 'Escaneos QR',
-        value: analytics?.totalQrScans ?? 0,
-        color: AppColors.primary,
-      ),
-      (
         label: 'Toques NFC',
         value: analytics?.totalTaps ?? 0,
         color: const Color(0xFFA98BFF),
@@ -1263,7 +1036,7 @@ class _ConversionPanel extends StatelessWidget {
           Text(
             'Conversión',
             style: GoogleFonts.outfit(
-              color: _ink,
+              color: context.textPrimary,
               fontSize: 19,
               fontWeight: FontWeight.w700,
             ),
@@ -1271,7 +1044,10 @@ class _ConversionPanel extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             'Distribución de interacción sobre el total de visitas.',
-            style: GoogleFonts.dmSans(color: _muted, fontSize: 13),
+            style: GoogleFonts.dmSans(
+              color: context.textSecondary,
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: 18),
           ...metrics.map(
@@ -1314,7 +1090,7 @@ class _ProgressMetric extends StatelessWidget {
             Text(
               label,
               style: GoogleFonts.dmSans(
-                color: _ink,
+                color: context.textPrimary,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
@@ -1323,7 +1099,7 @@ class _ProgressMetric extends StatelessWidget {
             Text(
               '$value',
               style: GoogleFonts.dmSans(
-                color: _muted,
+                color: context.textSecondary,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -1336,7 +1112,7 @@ class _ProgressMetric extends StatelessWidget {
           child: LinearProgressIndicator(
             value: progress.clamp(0, 1),
             minHeight: 10,
-            backgroundColor: _panelStrong,
+            backgroundColor: context.bgSubtle,
             color: color,
           ),
         ),
@@ -1368,7 +1144,7 @@ class _ChartLegend extends StatelessWidget {
         Text(
           label,
           style: GoogleFonts.dmSans(
-            color: _muted,
+            color: context.textSecondary,
             fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
@@ -1394,7 +1170,7 @@ class _TopLinksPanel extends StatelessWidget {
           Text(
             'Enlaces principales',
             style: GoogleFonts.outfit(
-              color: _ink,
+              color: context.textPrimary,
               fontSize: 19,
               fontWeight: FontWeight.w700,
             ),
@@ -1402,13 +1178,19 @@ class _TopLinksPanel extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             'Los enlaces con mayor intención de contacto.',
-            style: GoogleFonts.dmSans(color: _muted, fontSize: 13),
+            style: GoogleFonts.dmSans(
+              color: context.textSecondary,
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: 16),
           if (topLinks.isEmpty)
             Text(
               'Aún no hay clics suficientes para mostrar ranking.',
-              style: GoogleFonts.dmSans(color: _muted, fontSize: 12),
+              style: GoogleFonts.dmSans(
+                color: context.textSecondary,
+                fontSize: 12,
+              ),
             )
           else
             ...topLinks
@@ -1421,7 +1203,7 @@ class _TopLinksPanel extends StatelessWidget {
                         Icon(
                           _platformIcon(link.platform),
                           size: 17,
-                          color: _muted,
+                          color: context.textSecondary,
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -1433,7 +1215,7 @@ class _TopLinksPanel extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.dmSans(
-                                  color: _ink,
+                                  color: context.textPrimary,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -1442,7 +1224,7 @@ class _TopLinksPanel extends StatelessWidget {
                               Text(
                                 '${(link.percentage * 100).toStringAsFixed(0)}% de los clics',
                                 style: GoogleFonts.dmSans(
-                                  color: _muted,
+                                  color: context.textSecondary,
                                   fontSize: 11,
                                 ),
                               ),
@@ -1453,7 +1235,7 @@ class _TopLinksPanel extends StatelessWidget {
                         Text(
                           '${link.clicks}',
                           style: GoogleFonts.outfit(
-                            color: _ink,
+                            color: context.textPrimary,
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                           ),
@@ -1485,7 +1267,7 @@ class _ActivityPanel extends StatelessWidget {
           Text(
             'Actividad reciente',
             style: GoogleFonts.outfit(
-              color: _ink,
+              color: context.textPrimary,
               fontSize: 19,
               fontWeight: FontWeight.w700,
             ),
@@ -1493,13 +1275,19 @@ class _ActivityPanel extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             'Últimos movimientos detectados en tu ecosistema TapLoop.',
-            style: GoogleFonts.dmSans(color: _muted, fontSize: 13),
+            style: GoogleFonts.dmSans(
+              color: context.textSecondary,
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: 16),
           if (items.isEmpty)
             Text(
               'Todavía no hay eventos recientes.',
-              style: GoogleFonts.dmSans(color: _muted, fontSize: 12),
+              style: GoogleFonts.dmSans(
+                color: context.textSecondary,
+                fontSize: 12,
+              ),
             )
           else
             ...items.map(
@@ -1511,7 +1299,7 @@ class _ActivityPanel extends StatelessWidget {
                     Icon(
                       _platformIcon(event.source ?? ''),
                       size: 17,
-                      color: _muted,
+                      color: context.textSecondary,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -1523,7 +1311,7 @@ class _ActivityPanel extends StatelessWidget {
                                 ? event.label!
                                 : _eventTitle(event),
                             style: GoogleFonts.dmSans(
-                              color: _ink,
+                              color: context.textPrimary,
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                             ),
@@ -1532,7 +1320,7 @@ class _ActivityPanel extends StatelessWidget {
                           Text(
                             '${event.locationDisplay} • ${event.formattedDate} ${event.formattedTime}',
                             style: GoogleFonts.dmSans(
-                              color: _muted,
+                              color: context.textSecondary,
                               fontSize: 11,
                             ),
                           ),
@@ -1544,11 +1332,11 @@ class _ActivityPanel extends StatelessWidget {
               ),
             ),
           if (leads.isNotEmpty) ...[
-            const Divider(height: 28, color: _border),
+            Divider(height: 28, color: context.borderColor),
             Text(
               'Lead destacado',
               style: GoogleFonts.dmSans(
-                color: _muted,
+                color: context.textSecondary,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.1,
@@ -1558,7 +1346,7 @@ class _ActivityPanel extends StatelessWidget {
             Text(
               leads.first.displayName,
               style: GoogleFonts.outfit(
-                color: _ink,
+                color: context.textPrimary,
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
               ),
@@ -1567,7 +1355,7 @@ class _ActivityPanel extends StatelessWidget {
             Text(
               leads.first.aiSummary,
               style: GoogleFonts.dmSans(
-                color: _muted,
+                color: context.textSecondary,
                 fontSize: 12,
                 height: 1.45,
               ),
@@ -1602,7 +1390,7 @@ class _LeadsTable extends StatelessWidget {
                     Text(
                       'Leads recientes',
                       style: GoogleFonts.outfit(
-                        color: _ink,
+                        color: context.textPrimary,
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
                       ),
@@ -1610,7 +1398,10 @@ class _LeadsTable extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       'Leads priorizados por intención, score y última actividad.',
-                      style: GoogleFonts.dmSans(color: _muted, fontSize: 13),
+                      style: GoogleFonts.dmSans(
+                        color: context.textSecondary,
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 ),
@@ -1629,7 +1420,10 @@ class _LeadsTable extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 18),
               child: Text(
                 'Todavía no hay leads capturados.',
-                style: GoogleFonts.dmSans(color: _muted, fontSize: 13),
+                style: GoogleFonts.dmSans(
+                  color: context.textSecondary,
+                  fontSize: 13,
+                ),
               ),
             )
           else if (isDesktop)
@@ -1668,7 +1462,7 @@ class _LeadsHeaderRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = GoogleFonts.dmSans(
-      color: _muted,
+      color: context.textSecondary,
       fontSize: 11,
       fontWeight: FontWeight.w700,
       letterSpacing: 1.0,
@@ -1701,9 +1495,9 @@ class _LeadRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: _panelBg,
+        color: context.bgCard,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _border),
+        border: Border.all(color: context.borderColor),
       ),
       child: Row(
         children: [
@@ -1713,11 +1507,11 @@ class _LeadRow extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 20,
-                  backgroundColor: _softTag,
+                  backgroundColor: context.bgSubtle,
                   child: Text(
                     _initials(lead.displayName),
                     style: GoogleFonts.outfit(
-                      color: _ink,
+                      color: context.textPrimary,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -1732,7 +1526,7 @@ class _LeadRow extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.dmSans(
-                          color: _ink,
+                          color: context.textPrimary,
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                         ),
@@ -1746,7 +1540,10 @@ class _LeadRow extends StatelessWidget {
                                   : 'Sin empresa registrada'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.dmSans(color: _muted, fontSize: 12),
+                        style: GoogleFonts.dmSans(
+                          color: context.textSecondary,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
@@ -1759,7 +1556,7 @@ class _LeadRow extends StatelessWidget {
             child: Text(
               _pipelineLabel(lead.pipelineStage),
               style: GoogleFonts.dmSans(
-                color: _ink,
+                color: context.textPrimary,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -1770,7 +1567,7 @@ class _LeadRow extends StatelessWidget {
             child: Text(
               '${lead.score}',
               style: GoogleFonts.outfit(
-                color: _ink,
+                color: context.textPrimary,
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
               ),
@@ -1781,7 +1578,7 @@ class _LeadRow extends StatelessWidget {
             child: Text(
               _formatShortDate(lead.lastSeen),
               style: GoogleFonts.dmSans(
-                color: _muted,
+                color: context.textSecondary,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -1830,9 +1627,9 @@ class _LeadCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _panelBg,
+        color: context.bgCard,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _border),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1841,11 +1638,11 @@ class _LeadCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 20,
-                backgroundColor: _softTag,
+                backgroundColor: context.bgSubtle,
                 child: Text(
                   _initials(lead.displayName),
                   style: GoogleFonts.outfit(
-                    color: _ink,
+                    color: context.textPrimary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -1858,7 +1655,7 @@ class _LeadCard extends StatelessWidget {
                     Text(
                       lead.displayName,
                       style: GoogleFonts.dmSans(
-                        color: _ink,
+                        color: context.textPrimary,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                       ),
@@ -1866,7 +1663,10 @@ class _LeadCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       _pipelineLabel(lead.pipelineStage),
-                      style: GoogleFonts.dmSans(color: _muted, fontSize: 12),
+                      style: GoogleFonts.dmSans(
+                        color: context.textSecondary,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -1920,9 +1720,9 @@ class _LeadMetric extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.bgCard,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: _border),
+          border: Border.all(color: context.borderColor),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1930,7 +1730,7 @@ class _LeadMetric extends StatelessWidget {
             Text(
               label,
               style: GoogleFonts.dmSans(
-                color: _muted,
+                color: context.textSecondary,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
               ),
@@ -1939,7 +1739,7 @@ class _LeadMetric extends StatelessWidget {
             Text(
               value,
               style: GoogleFonts.outfit(
-                color: _ink,
+                color: context.textPrimary,
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
               ),
@@ -1963,9 +1763,9 @@ class _Panel extends StatelessWidget {
       width: double.infinity,
       padding: padding,
       decoration: BoxDecoration(
-        color: _panelBg,
+        color: context.bgCard,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: _border),
+        border: Border.all(color: context.borderColor),
       ),
       child: child,
     );
@@ -2033,7 +1833,7 @@ class _LinkCardDialogState extends State<_LinkCardDialog> {
     final isQr = _mode == _LinkInputMode.qr;
 
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: context.bgCard,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),
@@ -2046,7 +1846,7 @@ class _LinkCardDialogState extends State<_LinkCardDialog> {
               Text(
                 'Vincular tarjeta TapLoop',
                 style: GoogleFonts.outfit(
-                  color: _ink,
+                  color: context.textPrimary,
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
                 ),
@@ -2055,7 +1855,7 @@ class _LinkCardDialogState extends State<_LinkCardDialog> {
               Text(
                 'Pega la URL del QR o el serial NFC para conectar la tarjeta con este workspace.',
                 style: GoogleFonts.dmSans(
-                  color: _muted,
+                  color: context.textSecondary,
                   fontSize: 13,
                   height: 1.45,
                 ),
@@ -2146,15 +1946,17 @@ class _ModeChip extends StatelessWidget {
         child: Ink(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           decoration: BoxDecoration(
-            color: active ? _softTag : _panelBg,
+            color: active ? context.bgSubtle : context.bgCard,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: active ? AppColors.primary : _border),
+            border: Border.all(
+              color: active ? AppColors.primary : context.borderColor,
+            ),
           ),
           child: Center(
             child: Text(
               label,
               style: GoogleFonts.dmSans(
-                color: _ink,
+                color: context.textPrimary,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
@@ -2284,27 +2086,6 @@ String _initials(String name) {
   if (list.isEmpty) return 'TL';
   if (list.length == 1) return list.first.substring(0, 1).toUpperCase();
   return '${list[0][0]}${list[1][0]}'.toUpperCase();
-}
-
-String? _extractNfcSerial(String rawValue) {
-  final value = rawValue.trim();
-  if (value.isEmpty) return null;
-  final uri = Uri.tryParse(value);
-  if (uri != null) {
-    final segments = uri.pathSegments;
-    final nfcIndex = segments.indexOf('nfc');
-    if (nfcIndex != -1 && nfcIndex + 1 < segments.length) {
-      return segments[nfcIndex + 1].trim();
-    }
-  }
-  final directMatch = RegExp(
-    r'nfc/([^/?#]+)',
-    caseSensitive: false,
-  ).firstMatch(value);
-  if (directMatch != null) {
-    return directMatch.group(1)?.trim();
-  }
-  return value;
 }
 
 List<int> _deriveSeries(List<int> baseSeries, int total) {

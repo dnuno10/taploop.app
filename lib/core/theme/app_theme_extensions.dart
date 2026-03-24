@@ -8,7 +8,7 @@ extension AppThemeX on BuildContext {
   // ─── Page / structural backgrounds ──────────────────────────────────────
   /// Main scaffold background
   Color get bgPage =>
-      isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
+      isDark ? const Color(0xFF0F172A) : const Color(0xFFFFFFFF);
 
   /// Card / surface background
   Color get bgCard =>
@@ -16,11 +16,11 @@ extension AppThemeX on BuildContext {
 
   /// Subtle inset area (e.g. code blocks, inner panels)
   Color get bgSubtle =>
-      isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9);
+      isDark ? const Color(0xFF111827) : const Color(0xFFF7F7F5);
 
   /// Input/field background
   Color get bgInput =>
-      isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC);
+      isDark ? const Color(0xFF1E293B) : const Color(0xFFFAFAF8);
 
   // ─── Borders ─────────────────────────────────────────────────────────────
   Color get borderColor =>

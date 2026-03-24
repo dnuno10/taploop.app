@@ -12,6 +12,7 @@ import '../../../core/theme/app_theme_extensions.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../core/data/app_state.dart';
 import '../../../core/data/repositories/analytics_repository.dart';
+import '../../../core/widgets/card_initial_setup_state.dart';
 import '../../analytics/models/analytics_summary_model.dart';
 import '../models/contact_item_model.dart';
 import '../widgets/qr_code_widget.dart';
@@ -91,14 +92,18 @@ class _ShareCardViewState extends State<ShareCardView> {
   Widget build(BuildContext context) {
     final isMobile = Responsive.isMobile(context);
     final isDesktop = Responsive.isDesktop(context);
+    final effectiveQrColor = _qrColor == AppColors.black && context.isDark
+        ? Colors.white
+        : _qrColor;
+    final hasLinkedCard = appState.currentCard != null;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.bgPage,
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
             child: Container(
-              color: Colors.white,
+              color: context.bgCard,
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -108,7 +113,7 @@ class _ShareCardViewState extends State<ShareCardView> {
                     style: GoogleFonts.outfit(
                       fontSize: 28,
                       fontWeight: FontWeight.w800,
-                      color: const Color(0xFF181411),
+                      color: context.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -116,7 +121,7 @@ class _ShareCardViewState extends State<ShareCardView> {
                     'Distribuye tu tarjeta digital, QR y contacto desde un centro único.',
                     style: GoogleFonts.dmSans(
                       fontSize: 13,
-                      color: const Color(0xFF6F6A64),
+                      color: context.textSecondary,
                     ),
                   ),
                 ],
@@ -124,23 +129,35 @@ class _ShareCardViewState extends State<ShareCardView> {
             ),
           ),
           SliverToBoxAdapter(
-            child: isDesktop
-                ? _DesktopLayout(
-                    linkCopied: _linkCopied,
-                    onCopy: _copyLink,
-                    qrColor: _qrColor,
-                    qrPalette: _qrPalette,
-                    onQrColorChanged: (c) => setState(() => _qrColor = c),
-                    analytics: _analytics,
-                  )
-                : _MobileLayout(
-                    linkCopied: _linkCopied,
-                    onCopy: _copyLink,
-                    isMobile: isMobile,
-                    qrColor: _qrColor,
-                    qrPalette: _qrPalette,
-                    onQrColorChanged: (c) => setState(() => _qrColor = c),
-                    analytics: _analytics,
+            child: hasLinkedCard
+                ? (isDesktop
+                      ? _DesktopLayout(
+                          linkCopied: _linkCopied,
+                          onCopy: _copyLink,
+                          qrColor: effectiveQrColor,
+                          qrPalette: _qrPalette,
+                          onQrColorChanged: (c) => setState(() => _qrColor = c),
+                          analytics: _analytics,
+                        )
+                      : _MobileLayout(
+                          linkCopied: _linkCopied,
+                          onCopy: _copyLink,
+                          isMobile: isMobile,
+                          qrColor: effectiveQrColor,
+                          qrPalette: _qrPalette,
+                          onQrColorChanged: (c) => setState(() => _qrColor = c),
+                          analytics: _analytics,
+                        ))
+                : Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      isDesktop ? 64 : 20,
+                      28,
+                      isDesktop ? 64 : 20,
+                      36,
+                    ),
+                    child: CardInitialSetupState(
+                      onLinked: () => setState(() {}),
+                    ),
                   ),
           ),
         ],

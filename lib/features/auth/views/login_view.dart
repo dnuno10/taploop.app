@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/data/app_state.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme_extensions.dart';
 import '../../../core/services/auth_service.dart';
 import '../widgets/auth_header.dart';
 import '../widgets/auth_layout.dart';
-import '../widgets/social_divider.dart';
-import '../widgets/google_sign_in_button.dart';
 import '../../../core/widgets/taploop_button.dart';
 import '../../../core/widgets/taploop_text_field.dart';
 
@@ -23,35 +23,39 @@ class LoginView extends StatefulWidget {
 class _LoginViewState extends State<LoginView> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
   bool _loading = false;
   String? _errorMsg;
 
   @override
   void dispose() {
     _emailCtrl.dispose();
+    _passwordCtrl.dispose();
     super.dispose();
   }
 
-  void _onSendOtp() async {
+  void _onSignIn() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() {
       _loading = true;
       _errorMsg = null;
     });
     try {
-      print('[LoginView] Enviando OTP a ${_emailCtrl.text.trim()}');
-      await AuthService.sendOtp(_emailCtrl.text.trim());
-      if (!mounted) return;
-      context.push(
-        '/otp-verify',
-        extra: <String, String?>{
-          'email': _emailCtrl.text.trim(),
-          'name': null,
-          'pendingNfc': widget.pendingNfc,
-        },
+      final user = await AuthService.signIn(
+        email: _emailCtrl.text.trim(),
+        password: _passwordCtrl.text,
       );
+      final card = await AuthService.fetchUserCard(user.id);
+      if (!mounted) return;
+      appState.setUser(user);
+      appState.setCard(card);
+      final pendingNfc = widget.pendingNfc;
+      if (pendingNfc != null && pendingNfc.isNotEmpty) {
+        context.go('/nfc/$pendingNfc');
+      } else {
+        context.go('/');
+      }
     } catch (e) {
-      print('[LoginView] ERROR sendOtp: $e');
       if (mounted) {
         setState(() {
           _loading = false;
@@ -63,17 +67,13 @@ class _LoginViewState extends State<LoginView> {
   }
 
   String _friendlyError(String raw) {
-    if (raw.contains('rate limit') || raw.contains('too many')) {
-      return 'Demasiados intentos. Espera un momento e intenta de nuevo.';
+    if (raw.contains('Invalid login credentials')) {
+      return 'Correo o contraseña incorrectos.';
     }
-    if (raw.contains('invalid') && raw.contains('email')) {
-      return 'El correo ingresado no es válido.';
+    if (raw.contains('Email not confirmed')) {
+      return 'Tu correo no ha sido confirmado.';
     }
-    if (raw.contains('signup is disabled') ||
-        raw.contains('Signups not allowed')) {
-      return 'El servicio no está disponible en este momento.';
-    }
-    return 'Error al enviar el código. Intenta de nuevo.';
+    return 'No se pudo iniciar sesión. Intenta de nuevo.';
   }
 
   @override
@@ -84,9 +84,31 @@ class _LoginViewState extends State<LoginView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  'Demo privada de plataforma para',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
+                    color: context.textSecondary,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Image.asset(
+                  'assets/images/liomont-logo.png',
+                  height: 22,
+                  fit: BoxFit.contain,
+                ),
+              ],
+            ),
+            const SizedBox(height: 40),
             const AuthHeader(
               title: 'Bienvenido de nuevo',
-              subtitle: 'Ingresa tu correo para recibir tu código de acceso',
+              subtitle: 'Ingresa tu correo y contraseña para iniciar sesión',
             ),
             const SizedBox(height: 32),
 
@@ -96,17 +118,35 @@ class _LoginViewState extends State<LoginView> {
               controller: _emailCtrl,
               keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.done,
-              prefixIcon: const Icon(
+              prefixIcon: Icon(
                 Icons.mail_outline,
                 size: 20,
-                color: AppColors.grey,
+                color: context.textMuted,
               ),
               validator: (v) {
                 if (v == null || v.trim().isEmpty) return 'Ingresa tu correo';
                 if (!v.contains('@')) return 'Correo inválido';
                 return null;
               },
-              onSubmitted: (_) => _onSendOtp(),
+            ),
+            const SizedBox(height: 16),
+
+            TapLoopTextField(
+              label: 'Contraseña',
+              hint: 'Tu contraseña',
+              controller: _passwordCtrl,
+              obscureText: true,
+              textInputAction: TextInputAction.done,
+              prefixIcon: Icon(
+                Icons.lock_outline,
+                size: 20,
+                color: context.textMuted,
+              ),
+              validator: (v) {
+                if (v == null || v.isEmpty) return 'Ingresa tu contraseña';
+                return null;
+              },
+              onSubmitted: (_) => _onSignIn(),
             ),
 
             if (_errorMsg != null) ...[
@@ -135,52 +175,89 @@ class _LoginViewState extends State<LoginView> {
             const SizedBox(height: 24),
 
             TapLoopButton(
-              label: 'Enviar código',
-              onPressed: _loading ? null : _onSendOtp,
+              label: 'Iniciar sesión',
+              onPressed: _loading ? null : _onSignIn,
               variant: TapLoopButtonVariant.secondary,
               isLoading: _loading,
             ),
-            const SizedBox(height: 24),
-
-            const SocialDivider(),
-            const SizedBox(height: 24),
-
-            GoogleSignInButton(onPressed: () {}, isLoading: false),
-            const SizedBox(height: 32),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '¿No tienes cuenta? ',
-                  style: GoogleFonts.dmSans(
-                    fontSize: 14,
-                    color: AppColors.grey,
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    final pendingNfc = widget.pendingNfc;
-                    if (pendingNfc != null && pendingNfc.isNotEmpty) {
-                      context.go(
-                        '/register',
-                        extra: {'pendingNfc': pendingNfc},
-                      );
-                      return;
-                    }
-                    context.go('/register');
-                  },
-                  child: Text(
-                    'Regístrate gratis',
-                    style: GoogleFonts.dmSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
+            const SizedBox(height: 18),
+            Center(
+              child: Wrap(
+                spacing: 10,
+                runSpacing: 6,
+                alignment: WrapAlignment.center,
+                children: [
+                  GestureDetector(
+                    onTap: () => context.push('/terminos'),
+                    child: Text(
+                      'Terminos y condiciones',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: context.textSecondary,
+                        decoration: TextDecoration.underline,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                  Text(
+                    '•',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 12,
+                      color: context.textMuted,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => context.push('/privacidad'),
+                    child: Text(
+                      'Politicas de privacidad',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: context.textSecondary,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
+
+            // Flujo anterior comentado a petición del proyecto:
+            // const SizedBox(height: 24),
+            // const SocialDivider(),
+            // const SizedBox(height: 24),
+            // GoogleSignInButton(onPressed: () {}, isLoading: false),
+            // const SizedBox(height: 32),
+            // Row(
+            //   mainAxisAlignment: MainAxisAlignment.center,
+            //   children: [
+            //     Text(
+            //       '¿No tienes cuenta? ',
+            //       style: GoogleFonts.dmSans(
+            //         fontSize: 14,
+            //         color: context.textSecondary,
+            //       ),
+            //     ),
+            //     GestureDetector(
+            //       onTap: () {
+            //         final pendingNfc = widget.pendingNfc;
+            //         if (pendingNfc != null && pendingNfc.isNotEmpty) {
+            //           context.go('/register', extra: {'pendingNfc': pendingNfc});
+            //           return;
+            //         }
+            //         context.go('/register');
+            //       },
+            //       child: Text(
+            //         'Regístrate gratis',
+            //         style: GoogleFonts.dmSans(
+            //           fontSize: 14,
+            //           fontWeight: FontWeight.w700,
+            //           color: AppColors.primary,
+            //         ),
+            //       ),
+            //     ),
+            //   ],
+            // ),
           ],
         ),
       ),

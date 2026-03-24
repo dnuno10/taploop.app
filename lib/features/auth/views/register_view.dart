@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme_extensions.dart';
 import '../../../core/services/auth_service.dart';
 import '../widgets/auth_header.dart';
 import '../widgets/auth_layout.dart';
@@ -50,11 +51,9 @@ class _RegisterViewState extends State<RegisterView> {
       _loading = true;
       _errorMsg = null;
     });
-    print('[RegisterView] Enviando OTP a ${_emailCtrl.text.trim()}');
     try {
       await AuthService.sendOtp(_emailCtrl.text.trim());
       if (!mounted) return;
-      print('[RegisterView] OTP enviado — navegando a verificación');
       context.push(
         '/otp-verify',
         extra: <String, String?>{
@@ -64,7 +63,6 @@ class _RegisterViewState extends State<RegisterView> {
         },
       );
     } catch (e) {
-      print('[RegisterView] ERROR sendOtp: $e');
       if (mounted) {
         setState(() {
           _loading = false;
@@ -118,10 +116,10 @@ class _RegisterViewState extends State<RegisterView> {
               controller: _nameCtrl,
               keyboardType: TextInputType.name,
               textInputAction: TextInputAction.next,
-              prefixIcon: const Icon(
+              prefixIcon: Icon(
                 Icons.person_outline,
                 size: 20,
-                color: AppColors.grey,
+                color: context.textMuted,
               ),
               validator: (v) {
                 if (v == null || v.trim().isEmpty) return 'Ingresa tu nombre';
@@ -138,10 +136,10 @@ class _RegisterViewState extends State<RegisterView> {
               controller: _emailCtrl,
               keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.done,
-              prefixIcon: const Icon(
+              prefixIcon: Icon(
                 Icons.mail_outline,
                 size: 20,
-                color: AppColors.grey,
+                color: context.textMuted,
               ),
               validator: (v) {
                 if (v == null || v.trim().isEmpty) return 'Ingresa tu correo';
@@ -200,7 +198,7 @@ class _RegisterViewState extends State<RegisterView> {
                     TextSpan(
                       style: GoogleFonts.dmSans(
                         fontSize: 13,
-                        color: AppColors.grey,
+                        color: context.textSecondary,
                       ),
                       children: [
                         const TextSpan(text: 'Acepto los '),
@@ -253,7 +251,7 @@ class _RegisterViewState extends State<RegisterView> {
                   '¿Ya tienes cuenta? ',
                   style: GoogleFonts.dmSans(
                     fontSize: 14,
-                    color: AppColors.grey,
+                    color: context.textSecondary,
                   ),
                 ),
                 GestureDetector(

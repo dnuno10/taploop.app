@@ -12,6 +12,7 @@ import '../../../core/theme/app_theme_extensions.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../core/data/app_state.dart';
 import '../../../core/data/repositories/card_repository.dart';
+import '../../../core/widgets/card_initial_setup_state.dart';
 import '../../../core/widgets/taploop_button.dart';
 import '../models/digital_card_model.dart';
 import '../models/social_link_model.dart';
@@ -38,7 +39,7 @@ class _EditCardViewState extends State<EditCardView>
     _EditStepData('Perfil', Icons.person_outline_rounded),
     _EditStepData('Contacto', Icons.call_outlined),
     _EditStepData('Redes', Icons.language_rounded),
-    _EditStepData('Diseno', Icons.palette_outlined),
+    _EditStepData('Diseño', Icons.palette_outlined),
     _EditStepData('Formularios', Icons.assignment_outlined),
     _EditStepData('Calendario', Icons.event_outlined),
   ];
@@ -50,12 +51,15 @@ class _EditCardViewState extends State<EditCardView>
 
   bool _unsaved = false;
   bool _saving = false;
+  bool _suppressTextSync = false;
+  String? _organizationName;
 
   @override
   void initState() {
     super.initState();
     _tab = TabController(length: 6, vsync: this);
     _tab.addListener(_syncStepWithTab);
+    appState.addListener(_onAppStateChanged);
     _card =
         appState.currentCard ??
         DigitalCardModel(
@@ -75,9 +79,48 @@ class _EditCardViewState extends State<EditCardView>
     for (final ctrl in [_nameCtrl, _titleCtrl, _companyCtrl, _bioCtrl]) {
       ctrl.addListener(_onTextChanged);
     }
+    _loadOrganizationName();
+    _loadFormCompletion();
+  }
+
+  @override
+  void dispose() {
+    appState.removeListener(_onAppStateChanged);
+    _tab.removeListener(_syncStepWithTab);
+    _tab.dispose();
+    _nameCtrl.dispose();
+    _titleCtrl.dispose();
+    _companyCtrl.dispose();
+    _bioCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onAppStateChanged() {
+    final card = appState.currentCard;
+    if (card != null && card.id != _card.id) {
+      _applyCard(card);
+    }
+    _loadOrganizationName();
+    _loadFormCompletion();
+  }
+
+  void _applyCard(DigitalCardModel card) {
+    _syncControllers(
+      name: card.name,
+      title: card.jobTitle,
+      company: _organizationName ?? card.company,
+      bio: card.bio ?? '',
+    );
+    if (!mounted) return;
+    setState(() {
+      _card = card.copyWith(company: _organizationName ?? card.company);
+      _unsaved = false;
+    });
+    _loadFormCompletion();
   }
 
   void _onTextChanged() {
+    if (_suppressTextSync) return;
     setState(() {
       _card = _card.copyWith(
         name: _nameCtrl.text,
@@ -87,6 +130,66 @@ class _EditCardViewState extends State<EditCardView>
       );
       _unsaved = true;
     });
+  }
+
+  Future<void> _loadOrganizationName() async {
+    final orgId = appState.currentUser?.orgId;
+    if (orgId == null || orgId.isEmpty) {
+      if (!mounted) return;
+      setState(() => _organizationName = null);
+      return;
+    }
+
+    try {
+      final rows = await SupabaseService.client
+          .from('organizations')
+          .select('name')
+          .eq('id', orgId)
+          .limit(1);
+      final orgName = (rows as List).isNotEmpty
+          ? (rows.first['name'] as String?)?.trim()
+          : null;
+      if (!mounted || orgName == null || orgName.isEmpty) return;
+
+      _syncControllers(company: orgName);
+      setState(() {
+        _organizationName = orgName;
+        _card = _card.copyWith(company: orgName);
+        _unsaved = false;
+      });
+    } catch (_) {}
+  }
+
+  void _syncControllers({
+    String? name,
+    String? title,
+    String? company,
+    String? bio,
+  }) {
+    _suppressTextSync = true;
+    if (name != null) _nameCtrl.text = name;
+    if (title != null) _titleCtrl.text = title;
+    if (company != null) _companyCtrl.text = company;
+    if (bio != null) _bioCtrl.text = bio;
+    _suppressTextSync = false;
+  }
+
+  Future<void> _loadFormCompletion() async {
+    final cardId = _card.id;
+    if (cardId.isEmpty) {
+      if (!mounted || !_hasCompletedForm) return;
+      setState(() => _hasCompletedForm = false);
+      return;
+    }
+
+    try {
+      final forms = await CardRepository.fetchSmartForms(cardId);
+      final hasCompletedForm = forms.any(
+        (form) => form.isActive && form.fields.isNotEmpty,
+      );
+      if (!mounted || _hasCompletedForm == hasCompletedForm) return;
+      setState(() => _hasCompletedForm = hasCompletedForm);
+    } catch (_) {}
   }
 
   void _syncStepWithTab() {
@@ -118,11 +221,6 @@ class _EditCardViewState extends State<EditCardView>
     final hasVisibleSocial = _card.socialLinks.any(
       (link) => link.isVisible && link.url.trim().isNotEmpty,
     );
-    final hasPrimaryDesign =
-        (_card.bgColor != null) &&
-        (_card.bgStyle != CardBgStyle.gradient &&
-                _card.bgStyle != CardBgStyle.mesh ||
-            _card.bgColorEnd != null);
     final hasCalendar =
         _card.calendarEnabled && (_card.calendarUrl?.trim().isNotEmpty == true);
 
@@ -133,7 +231,7 @@ class _EditCardViewState extends State<EditCardView>
           _bioCtrl.text.trim().isNotEmpty,
       hasVisibleContact,
       hasVisibleSocial,
-      hasPrimaryDesign,
+      true,
       _hasCompletedForm,
       hasCalendar,
     ];
@@ -442,31 +540,23 @@ class _EditCardViewState extends State<EditCardView>
   }
 
   @override
-  void dispose() {
-    _tab.removeListener(_syncStepWithTab);
-    _tab.dispose();
-    _nameCtrl.dispose();
-    _titleCtrl.dispose();
-    _companyCtrl.dispose();
-    _bioCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final isDesktop = Responsive.isDesktop(context);
     final stepProgress = (_stepIndex + 1) / _steps.length;
+    final hasLinkedCard = appState.currentCard != null;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.bgPage,
       body: SafeArea(
         child: Column(
           children: [
             Container(
+              width: double.infinity,
+              alignment: Alignment.centerLeft,
               padding: const EdgeInsets.fromLTRB(24, 20, 24, 18),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(bottom: BorderSide(color: Color(0xFFE8E8E3))),
+              decoration: BoxDecoration(
+                color: context.bgCard,
+                border: Border(bottom: BorderSide(color: context.borderColor)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -487,7 +577,7 @@ class _EditCardViewState extends State<EditCardView>
                               style: GoogleFonts.outfit(
                                 fontSize: 28,
                                 fontWeight: FontWeight.w800,
-                                color: const Color(0xFF181411),
+                                color: context.textPrimary,
                               ),
                             ),
                             if (_unsaved) ...[
@@ -508,64 +598,75 @@ class _EditCardViewState extends State<EditCardView>
                           'Edita tu perfil, contacto, diseño y flujos de captura desde un mismo espacio.',
                           style: GoogleFonts.dmSans(
                             fontSize: 13,
-                            color: const Color(0xFF6F6A64),
+                            color: context.textSecondary,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 14),
-                  Wrap(
-                    spacing: 14,
-                    runSpacing: 14,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: const Color(0xFFE8E8E3)),
-                        ),
-                        child: Text(
-                          'Paso ${_stepIndex + 1} de ${_steps.length}: ${_steps[_stepIndex].label}',
-                          style: GoogleFonts.dmSans(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF181411),
+                  if (hasLinkedCard) ...[
+                    const SizedBox(height: 14),
+                    Wrap(
+                      spacing: 14,
+                      runSpacing: 14,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: context.bgCard,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: context.borderColor),
+                          ),
+                          child: Text(
+                            'Paso ${_stepIndex + 1} de ${_steps.length}: ${_steps[_stepIndex].label}',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: context.textPrimary,
+                            ),
                           ),
                         ),
-                      ),
-                      _StepNavButton(
-                        icon: Icons.arrow_back_rounded,
-                        enabled: _stepIndex > 0,
-                        onTap: _prevStep,
-                      ),
-                      _StepNavButton(
-                        icon: Icons.arrow_forward_rounded,
-                        enabled: _stepIndex < _steps.length - 1,
-                        onTap: _nextStep,
-                      ),
-                      _SaveButton(
-                        unsaved: _unsaved,
-                        saving: _saving,
-                        onSave: _onSave,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  LinearProgressIndicator(
-                    minHeight: 4,
-                    value: stepProgress,
-                    color: AppColors.primary,
-                    backgroundColor: const Color(0xFFF0EFEC),
-                  ),
+                        _StepNavButton(
+                          icon: Icons.arrow_back_rounded,
+                          enabled: _stepIndex > 0,
+                          onTap: _prevStep,
+                        ),
+                        _StepNavButton(
+                          icon: Icons.arrow_forward_rounded,
+                          enabled: _stepIndex < _steps.length - 1,
+                          onTap: _nextStep,
+                        ),
+                        _SaveButton(
+                          unsaved: _unsaved,
+                          saving: _saving,
+                          onSave: _onSave,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    LinearProgressIndicator(
+                      minHeight: 4,
+                      value: stepProgress,
+                      color: AppColors.primary,
+                      backgroundColor: context.bgSubtle,
+                    ),
+                  ],
                 ],
               ),
             ),
-            Expanded(child: isDesktop ? _desktopLayout() : _mobileLayout()),
+            Expanded(
+              child: hasLinkedCard
+                  ? (isDesktop ? _desktopLayout() : _mobileLayout())
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
+                      child: CardInitialSetupState(
+                        onLinked: () => _applyCard(appState.currentCard!),
+                      ),
+                    ),
+            ),
           ],
         ),
       ),
@@ -575,11 +676,11 @@ class _EditCardViewState extends State<EditCardView>
   Widget _mobileLayout() {
     final stepCompletion = _stepCompletion();
     return Container(
-      color: Colors.white,
+      color: context.bgPage,
       child: Column(
         children: [
           Container(
-            color: Colors.white,
+            color: context.bgPage,
             child: _HorizontalStepSelector(
               steps: _steps,
               completedSteps: stepCompletion,
@@ -592,11 +693,11 @@ class _EditCardViewState extends State<EditCardView>
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: context.bgCard,
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(24),
                   ),
-                  border: Border.all(color: const Color(0xFFE8E8E3)),
+                  border: Border.all(color: context.borderColor),
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: TabBarView(
@@ -621,7 +722,7 @@ class _EditCardViewState extends State<EditCardView>
   Widget _desktopLayout() {
     final stepCompletion = _stepCompletion();
     return Container(
-      color: Colors.white,
+      color: context.bgPage,
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Row(
@@ -630,9 +731,9 @@ class _EditCardViewState extends State<EditCardView>
             Container(
               width: 228,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.bgCard,
                 borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: const Color(0xFFE8E8E3)),
+                border: Border.all(color: context.borderColor),
               ),
               child: _VerticalStepRail(
                 steps: _steps,
@@ -646,9 +747,9 @@ class _EditCardViewState extends State<EditCardView>
               flex: 6,
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: context.bgCard,
                   borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: const Color(0xFFE8E8E3)),
+                  border: Border.all(color: context.borderColor),
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: Column(
@@ -685,6 +786,7 @@ class _EditCardViewState extends State<EditCardView>
       companyCtrl: _companyCtrl,
       bioCtrl: _bioCtrl,
       card: _card,
+      companyLocked: _organizationName != null,
       onPhotoChanged: (url) => setState(() {
         _card = _card.copyWith(profilePhotoUrl: url);
         _unsaved = true;
@@ -761,10 +863,10 @@ class _StepNavButton extends StatelessWidget {
           width: 28,
           height: 28,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.bgCard,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: enabled ? AppColors.primary : const Color(0xFFE8E8E3),
+              color: enabled ? AppColors.primary : context.borderColor,
             ),
           ),
           child: Icon(
@@ -1008,7 +1110,7 @@ class _LivePreviewPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: const Color(0xFFE8E8E3)),
+        border: Border.all(color: context.borderColor),
       ),
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
@@ -1035,7 +1137,7 @@ class _LivePreviewPanel extends StatelessWidget {
               decoration: BoxDecoration(
                 color: const Color(0xFFF7F7F5),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFE8E8E3)),
+                border: Border.all(color: context.borderColor),
               ),
               child: Text(
                 'taploop-software.vercel.app/${card.publicSlug}',
@@ -1097,6 +1199,7 @@ class _ProfileTab extends StatelessWidget {
   final TextEditingController companyCtrl;
   final TextEditingController bioCtrl;
   final DigitalCardModel card;
+  final bool companyLocked;
   final ValueChanged<String> onPhotoChanged;
   final ValueChanged<String> onLogoChanged;
 
@@ -1106,6 +1209,7 @@ class _ProfileTab extends StatelessWidget {
     required this.companyCtrl,
     required this.bioCtrl,
     required this.card,
+    required this.companyLocked,
     required this.onPhotoChanged,
     required this.onLogoChanged,
   });
@@ -1153,7 +1257,18 @@ class _ProfileTab extends StatelessWidget {
                 label: 'Empresa',
                 controller: companyCtrl,
                 hint: 'Ej: TapLoop Inc.',
+                enabled: !companyLocked,
               ),
+              if (companyLocked) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Este campo se completa automaticamente segun la organizacion del usuario y no puede modificarse.',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 12,
+                    color: context.textSecondary,
+                  ),
+                ),
+              ],
               const SizedBox(height: 28),
               Divider(color: context.borderColor, height: 1),
               const SizedBox(height: 28),
