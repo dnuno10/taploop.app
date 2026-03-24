@@ -18,6 +18,7 @@ import 'features/auth/views/legal_pages_view.dart';
 import 'features/card/views/public_card_view.dart';
 
 /// Global theme mode notifier
+/// Test Ivanovich
 final themeModeNotifier = ValueNotifier<ThemeMode>(ThemeMode.light);
 
 void main() async {
