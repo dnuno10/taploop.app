@@ -3,9 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
-import 'card_qr_web_capture_stub.dart'
-    if (dart.library.html) 'card_qr_web_capture_web.dart'
-    as web_qr;
+import 'card_qr_web_scanner_stub.dart'
+    if (dart.library.html) 'card_qr_web_scanner_web.dart';
 import '../data/app_state.dart';
 import '../data/repositories/card_repository.dart';
 import '../services/auth_service.dart';
@@ -42,26 +41,10 @@ class _CardInitialSetupStateState extends State<CardInitialSetupState> {
     if (!_usesEmbeddedScanner) {
       setState(() {
         _scannerVisible = true;
-        _submitting = true;
         _error = null;
         _cameraError = null;
         _hasProcessedScan = false;
       });
-
-      final rawValue = await web_qr.captureQrCodeFromCameraOrImage();
-      if (!mounted) return;
-
-      if (rawValue == null || rawValue.trim().isEmpty) {
-        setState(() {
-          _scannerVisible = false;
-          _submitting = false;
-          _cameraError =
-              'No se pudo leer el QR desde la camara o la imagen seleccionada.';
-        });
-        return;
-      }
-
-      await _processScannedValue(rawValue);
       return;
     }
 
@@ -218,7 +201,7 @@ class _CardInitialSetupStateState extends State<CardInitialSetupState> {
                     Text(
                       _usesEmbeddedScanner
                           ? 'La vinculacion se realiza unicamente con la camara del dispositivo. Al validar el QR se enlaza la tarjeta en nfc_cards con tu usuario y, si corresponde, se crea tu digital_card para habilitar clicks, taps, visitas, leads y metricas.'
-                          : 'En navegador se abrira la camara o el selector nativo para capturar el QR y vincular la tarjeta sin depender del plugin embebido.',
+                          : 'En navegador se abrira la camara del dispositivo para escanear el QR en vivo y vincular la tarjeta.',
                       style: GoogleFonts.dmSans(
                         color: context.textSecondary,
                         fontSize: 14,
@@ -322,7 +305,7 @@ class _CardInitialSetupStateState extends State<CardInitialSetupState> {
                   Text(
                     _usesEmbeddedScanner
                         ? 'Coloca el QR dentro del recuadro. La lectura de la camara validara la tarjeta y la vinculara automaticamente a tu cuenta.'
-                        : 'Tu navegador abrira la camara del dispositivo o el selector de imagen para capturar el QR y vincular la tarjeta.',
+                        : 'Tu navegador pedira permiso para abrir la camara del dispositivo y leer el QR en tiempo real.',
                     style: GoogleFonts.dmSans(
                       color: context.textSecondary,
                       fontSize: 13,
@@ -436,30 +419,50 @@ class _CardInitialSetupStateState extends State<CardInitialSetupState> {
                             border: Border.all(color: context.borderColor),
                           ),
                           padding: const EdgeInsets.all(20),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                          child: Stack(
+                            fit: StackFit.expand,
                             children: [
-                              const CircularProgressIndicator(),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Abriendo la camara del dispositivo...',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.outfit(
-                                  color: context.textPrimary,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w800,
+                              CardQrWebScanner(
+                                onDetected: _processScannedValue,
+                                onError: (message) {
+                                  if (!mounted) return;
+                                  setState(() => _cameraError = message);
+                                },
+                              ),
+                              IgnorePointer(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: AppColors.white.withValues(
+                                        alpha: 0.85,
+                                      ),
+                                      width: 2,
+                                    ),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  margin: const EdgeInsets.all(28),
                                 ),
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Si el navegador no abre la camara, selecciona una foto del QR para continuar.',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.dmSans(
-                                  color: context.textSecondary,
-                                  fontSize: 13,
-                                  height: 1.5,
+                              if (_submitting)
+                                Container(
+                                  color: Colors.black.withValues(alpha: 0.45),
+                                  alignment: Alignment.center,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const CircularProgressIndicator(),
+                                      const SizedBox(height: 14),
+                                      Text(
+                                        'Validando QR y vinculando tarjeta...',
+                                        style: GoogleFonts.dmSans(
+                                          color: AppColors.white,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
                             ],
                           ),
                         ),
