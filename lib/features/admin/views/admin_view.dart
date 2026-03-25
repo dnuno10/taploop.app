@@ -709,12 +709,24 @@ class _CompanyHeaderState extends State<_CompanyHeader> {
     if (orgId == null || orgId.isEmpty) return;
 
     final input = html.FileUploadInputElement()
-      ..accept = 'image/jpeg,image/png,image/webp,image/svg+xml';
+      ..accept = 'image/jpeg,image/png';
     input.click();
     await input.onChange.first;
     final file = input.files?.first;
     if (file == null) return;
 
+    // Validar tipo de archivo
+    const tiposPermitidos = ['image/jpeg', 'image/png'];
+    if (!tiposPermitidos.contains(file.type)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Solo se permiten imágenes en formato JPG o PNG.'),
+          ),
+        );
+      }
+      return;
+    }
     if (file.size > 5 * 1024 * 1024) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -731,11 +743,7 @@ class _CompanyHeaderState extends State<_CompanyHeader> {
       await reader.onLoad.first;
       final bytes = reader.result as Uint8List;
 
-      final ext = file.type.contains('png')
-          ? 'png'
-          : file.type.contains('svg')
-          ? 'svg'
-          : 'jpg';
+      final ext = file.type == 'image/png' ? 'png' : 'jpg';
       final path = '$orgId/logo_${DateTime.now().millisecondsSinceEpoch}.$ext';
 
       await SupabaseService.client.storage
@@ -783,11 +791,13 @@ class _CompanyHeaderState extends State<_CompanyHeader> {
           context,
         ).showSnackBar(const SnackBar(content: Text('Logo actualizado.')));
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error al subir logo: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo subir el logo. Intenta de nuevo.'),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _uploading = false);

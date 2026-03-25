@@ -1353,13 +1353,26 @@ class _AvatarPickerState extends State<_AvatarPicker> {
   Future<void> _pickAndUpload() async {
     if (!kIsWeb) return;
     final input = html.FileUploadInputElement()
-      ..accept = 'image/jpeg,image/png,image/webp';
+      ..accept = 'image/jpeg,image/png';
     input.click();
     await input.onChange.first;
     final file = input.files?.first;
     if (file == null) return;
 
-    // 5 MB guard
+    // Validar tipo de archivo
+    const tiposPermitidos = ['image/jpeg', 'image/png'];
+    if (!tiposPermitidos.contains(file.type)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Solo se permiten imágenes en formato JPG o PNG.'),
+          ),
+        );
+      }
+      return;
+    }
+
+    // Validar tamaño
     if (file.size > 5 * 1024 * 1024) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1395,11 +1408,13 @@ class _AvatarPickerState extends State<_AvatarPicker> {
       final url = '$rawUrl?t=${DateTime.now().millisecondsSinceEpoch}';
 
       widget.onPhotoChanged(url);
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error al subir imagen: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo subir la imagen. Intenta de nuevo.'),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _uploading = false);
