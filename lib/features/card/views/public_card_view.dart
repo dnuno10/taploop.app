@@ -584,22 +584,50 @@ class _HeroHeader extends StatelessWidget {
                   const SizedBox(height: 20),
                   if (card.companyLogoUrl != null &&
                       card.companyLogoUrl!.isNotEmpty)
-                    Container(
-                      height: 56,
-                      constraints: const BoxConstraints(maxWidth: 160),
+                    Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 6,
                       ),
-                      child: RemoteBrandLogo(
+                      child: _PublicCompanyLogo(
                         imageUrl: card.companyLogoUrl!,
-                        fit: BoxFit.contain,
+                        maxWidth: 160,
+                        height: 56,
                       ),
                     ),
                 ],
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PublicCompanyLogo extends StatelessWidget {
+  final String imageUrl;
+  final double maxWidth;
+  final double height;
+
+  const _PublicCompanyLogo({
+    required this.imageUrl,
+    required this.maxWidth,
+    required this.height,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: SizedBox(
+        width: maxWidth,
+        height: height,
+        child: RemoteBrandLogo(
+          imageUrl: imageUrl,
+          width: maxWidth,
+          height: height,
+          fit: BoxFit.contain,
         ),
       ),
     );
@@ -714,16 +742,15 @@ class _BannerHeader extends StatelessWidget {
                         const SizedBox(height: 10),
                         if (card.companyLogoUrl != null &&
                             card.companyLogoUrl!.isNotEmpty)
-                          Container(
-                            height: 48,
-                            constraints: const BoxConstraints(maxWidth: 130),
+                          Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 8,
                               vertical: 4,
                             ),
-                            child: RemoteBrandLogo(
+                            child: _PublicCompanyLogo(
                               imageUrl: card.companyLogoUrl!,
-                              fit: BoxFit.contain,
+                              maxWidth: 130,
+                              height: 48,
                             ),
                           ),
                       ],
@@ -844,16 +871,15 @@ class _MinimalHeader extends StatelessWidget {
                   const SizedBox(height: 20),
                   if (card.companyLogoUrl != null &&
                       card.companyLogoUrl!.isNotEmpty)
-                    Container(
-                      height: 52,
-                      constraints: const BoxConstraints(maxWidth: 140),
+                    Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
                         vertical: 5,
                       ),
-                      child: RemoteBrandLogo(
+                      child: _PublicCompanyLogo(
                         imageUrl: card.companyLogoUrl!,
-                        fit: BoxFit.contain,
+                        maxWidth: 140,
+                        height: 52,
                       ),
                     ),
                 ],
