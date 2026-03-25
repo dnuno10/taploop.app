@@ -265,13 +265,50 @@ class CardRepository {
 
   static Future<String?> fetchOrganizationLogoUrl(String? orgId) async {
     if (orgId == null || orgId.isEmpty) return null;
-    final rows = await _db
-        .from('organizations')
-        .select('company_logo')
-        .eq('id', orgId)
-        .limit(1);
-    if ((rows as List).isEmpty) return null;
-    return resolveCompanyLogoUrl(rows.first['company_logo'] as String?);
+    try {
+      final rows = await _db
+          .from('organizations')
+          .select('company_logo')
+          .eq('id', orgId)
+          .limit(1);
+      if ((rows as List).isNotEmpty) {
+        final resolved = resolveCompanyLogoUrl(
+          rows.first['company_logo'] as String?,
+        );
+        if (resolved != null && resolved.isNotEmpty) {
+          return resolved;
+        }
+      }
+    } catch (_) {}
+    return fetchOrganizationLogoUrlFromStorage(orgId);
+  }
+
+  static Future<String?> fetchOrganizationLogoUrlFromStorage(
+    String orgId,
+  ) async {
+    try {
+      final files = await _db.storage.from('company-logos').list(path: orgId);
+      final candidates = files.where((file) {
+        return RegExp(
+          r'^logo_.*\.(png|jpg|jpeg|webp|svg)$',
+          caseSensitive: false,
+        ).hasMatch(file.name);
+      }).toList();
+      if (candidates.isEmpty) return null;
+
+      candidates.sort((a, b) {
+        final aDate = DateTime.tryParse(a.updatedAt ?? a.createdAt ?? '');
+        final bDate = DateTime.tryParse(b.updatedAt ?? b.createdAt ?? '');
+        if (aDate != null && bDate != null) {
+          return bDate.compareTo(aDate);
+        }
+        return b.name.compareTo(a.name);
+      });
+
+      return buildCompanyLogoPublicUrl('$orgId/${candidates.first.name}');
+    } catch (_) {
+      return null;
+    }
   }
 
   static Future<String?> resolveCardOrganizationId(
@@ -305,17 +342,43 @@ class CardRepository {
         '/storage/v1/object/public/company-logos/',
       );
     }
-    if (value.startsWith('company-logos/')) {
-      return _db.storage
-          .from('company-logos')
-          .getPublicUrl(value.replaceFirst('company-logos/', ''));
+    final normalizedPath = value
+        .replaceFirst(RegExp(r'^company-logos/'), '')
+        .replaceFirst(RegExp(r'^logos/'), '');
+    return buildCompanyLogoPublicUrl(normalizedPath);
+  }
+
+  static String? extractCompanyLogoStoragePath(String? storedValue) {
+    final value = storedValue
+        ?.trim()
+        .replaceAll(RegExp(r"""^['"]+|['"]+$"""), '')
+        .replaceFirst(RegExp(r'^/+'), '');
+    if (value == null || value.isEmpty) return null;
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+      final uri = Uri.tryParse(value);
+      if (uri == null) return null;
+      final marker = '/storage/v1/object/public/company-logos/';
+      final path = uri.path;
+      final markerIndex = path.indexOf(marker);
+      if (markerIndex == -1) return null;
+      return path.substring(markerIndex + marker.length);
     }
-    if (value.startsWith('logos/')) {
-      return _db.storage
-          .from('company-logos')
-          .getPublicUrl(value.replaceFirst('logos/', ''));
-    }
-    return _db.storage.from('company-logos').getPublicUrl(value);
+    return value
+        .replaceFirst(RegExp(r'^company-logos/'), '')
+        .replaceFirst(RegExp(r'^logos/'), '');
+  }
+
+  static String buildCompanyLogoPublicUrl(String storagePath) {
+    final normalizedPath = storagePath
+        .trim()
+        .replaceAll(RegExp(r"""^['"]+|['"]+$"""), '')
+        .replaceFirst(RegExp(r'^/+'), '');
+    final encodedPath = normalizedPath
+        .split('/')
+        .where((segment) => segment.isNotEmpty)
+        .map(Uri.encodeComponent)
+        .join('/');
+    return '${SupabaseService.url}/storage/v1/object/public/company-logos/$encodedPath';
   }
 
   // ─── Save card fields ─────────────────────────────────────────────────────

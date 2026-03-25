@@ -20,6 +20,7 @@ class SupabaseService {
   }
 
   static SupabaseClient get client => Supabase.instance.client;
+  static String get url => _supabaseUrl;
 
   static User? get currentAuthUser => client.auth.currentUser;
 

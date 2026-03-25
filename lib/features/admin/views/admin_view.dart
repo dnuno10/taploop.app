@@ -684,8 +684,11 @@ class _CompanyHeaderState extends State<_CompanyHeader> {
       return;
     }
     final orgData = await AdminRepository.fetchOrg(orgId);
-    final logoPath = orgData?['company_logo'] as String?;
-    final logoUrl = CardRepository.resolveCompanyLogoUrl(logoPath);
+    final storedLogoValue = orgData?['company_logo'] as String?;
+    final logoPath = CardRepository.extractCompanyLogoStoragePath(
+      storedLogoValue,
+    );
+    final logoUrl = CardRepository.resolveCompanyLogoUrl(storedLogoValue);
     if (!mounted) return;
     setState(() {
       _organizationLogoPath = logoPath;
@@ -743,7 +746,13 @@ class _CompanyHeaderState extends State<_CompanyHeader> {
             fileOptions: FileOptions(upsert: true, contentType: file.type),
           );
 
-      await AdminRepository.updateOrgLogo(orgId: orgId, companyLogo: path);
+      final updatedLogoUrl =
+          '${CardRepository.buildCompanyLogoPublicUrl(path)}?t=${DateTime.now().millisecondsSinceEpoch}';
+
+      await AdminRepository.updateOrgLogo(
+        orgId: orgId,
+        companyLogo: updatedLogoUrl,
+      );
 
       final previousPath = _organizationLogoPath;
       if (previousPath != null &&
@@ -756,14 +765,8 @@ class _CompanyHeaderState extends State<_CompanyHeader> {
         } catch (_) {}
       }
 
-      final rawUrl = CardRepository.resolveCompanyLogoUrl(path);
-      final updatedLogoUrl = rawUrl == null
-          ? null
-          : '$rawUrl?t=${DateTime.now().millisecondsSinceEpoch}';
       final currentCard = appState.currentCard;
-      if (updatedLogoUrl != null &&
-          currentCard != null &&
-          currentCard.orgId == orgId) {
+      if (currentCard != null && currentCard.orgId == orgId) {
         appState.updateCard(
           currentCard.copyWith(companyLogoUrl: updatedLogoUrl),
         );
