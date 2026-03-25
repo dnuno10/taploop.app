@@ -132,28 +132,26 @@ class CardPreviewWidget extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // Logo o company logo
-                          card.companyLogoUrl != null
+                          card.companyLogoUrl != null &&
+                                  card.companyLogoUrl!.isNotEmpty
                               ? Image.network(
                                   card.companyLogoUrl!,
                                   height: height * 0.22,
                                   fit: BoxFit.contain,
-                                  errorBuilder: (_, __, ___) => Image.asset(
-                                    'assets/images/liomont-logo.png',
-                                    height: height * 0.35,
-                                    color: isDark ? Colors.white : null,
-                                    colorBlendMode: isDark
-                                        ? BlendMode.srcIn
-                                        : null,
-                                  ),
+                                  errorBuilder: (_, __, ___) =>
+                                      const SizedBox.shrink(),
                                 )
-                              : Image.asset(
-                                  'assets/images/liomont-logo.png',
-                                  height: height * 0.35,
-                                  color: isDark ? Colors.white : null,
-                                  colorBlendMode: isDark
-                                      ? BlendMode.srcIn
-                                      : null,
+                              : Text(
+                                  card.company.isNotEmpty
+                                      ? card.company
+                                      : 'TapLoop',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: height * 0.12,
+                                    fontWeight: FontWeight.w800,
+                                    color: isDark
+                                        ? Colors.white
+                                        : AppColors.black,
+                                  ),
                                 ),
                           // NFC icon
                           Icon(

@@ -578,39 +578,21 @@ class _HeroHeader extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(height: 20),
-                  Container(
-                    height: 56,
-                    constraints: const BoxConstraints(maxWidth: 160),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
+                  if (card.companyLogoUrl != null &&
+                      card.companyLogoUrl!.isNotEmpty)
+                    Container(
+                      height: 56,
+                      constraints: const BoxConstraints(maxWidth: 160),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      child: Image.network(
+                        card.companyLogoUrl!,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                      ),
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Expanded(
-                          child: Image.asset(
-                            'assets/images/liomont-logo.png',
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                        if (card.companyLogoUrl != null &&
-                            card.companyLogoUrl!.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: SizedBox(
-                              height: 16,
-                              child: Image.network(
-                                card.companyLogoUrl!,
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) =>
-                                    const SizedBox.shrink(),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -727,39 +709,22 @@ class _BannerHeader extends StatelessWidget {
                           ),
                         ],
                         const SizedBox(height: 10),
-                        Container(
-                          height: 48,
-                          constraints: const BoxConstraints(maxWidth: 130),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
+                        if (card.companyLogoUrl != null &&
+                            card.companyLogoUrl!.isNotEmpty)
+                          Container(
+                            height: 48,
+                            constraints: const BoxConstraints(maxWidth: 130),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            child: Image.network(
+                              card.companyLogoUrl!,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) =>
+                                  const SizedBox.shrink(),
+                            ),
                           ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Expanded(
-                                child: Image.asset(
-                                  'assets/images/liomont-logo.png',
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                              if (card.companyLogoUrl != null &&
-                                  card.companyLogoUrl!.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 4),
-                                  child: SizedBox(
-                                    height: 14,
-                                    child: Image.network(
-                                      card.companyLogoUrl!,
-                                      fit: BoxFit.contain,
-                                      errorBuilder: (_, __, ___) =>
-                                          const SizedBox.shrink(),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -876,39 +841,21 @@ class _MinimalHeader extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(height: 20),
-                  Container(
-                    height: 52,
-                    constraints: const BoxConstraints(maxWidth: 140),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
+                  if (card.companyLogoUrl != null &&
+                      card.companyLogoUrl!.isNotEmpty)
+                    Container(
+                      height: 52,
+                      constraints: const BoxConstraints(maxWidth: 140),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      child: Image.network(
+                        card.companyLogoUrl!,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                      ),
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Expanded(
-                          child: Image.asset(
-                            'assets/images/liomont-logo.png',
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                        if (card.companyLogoUrl != null &&
-                            card.companyLogoUrl!.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: SizedBox(
-                              height: 15,
-                              child: Image.network(
-                                card.companyLogoUrl!,
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) =>
-                                    const SizedBox.shrink(),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -1214,7 +1161,7 @@ class _Footer extends StatelessWidget {
             const SizedBox(height: 20),
             GestureDetector(
               onTap: () async {
-                final uri = Uri.parse('https://taploop-software.vercel.app');
+                final uri = Uri.parse('https://liomont.taploop.com.mx');
                 if (await canLaunchUrl(uri)) {
                   await launchUrl(uri, mode: LaunchMode.externalApplication);
                 }
@@ -1894,6 +1841,7 @@ class _NfcActivationPage extends StatelessWidget {
       listenable: appState,
       builder: (context, _) {
         final loggedIn = appState.isAuthenticated;
+        final logoUrl = appState.currentCard?.companyLogoUrl;
         return Scaffold(
           backgroundColor: AppColors.surface,
           body: SafeArea(
@@ -1908,15 +1856,21 @@ class _NfcActivationPage extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Logo
-                      Image.asset('assets/images/liomont-logo.png', height: 46),
-                      const SizedBox(height: 40),
+                      if (logoUrl != null && logoUrl.isNotEmpty) ...[
+                        Image.network(
+                          logoUrl,
+                          height: 46,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                        ),
+                        const SizedBox(height: 40),
+                      ],
                       // NFC icon
                       Container(
                         width: 96,
                         height: 96,
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1),
+                          color: AppColors.primary.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -1928,7 +1882,7 @@ class _NfcActivationPage extends StatelessWidget {
                       const SizedBox(height: 32),
                       Text(
                         loggedIn
-                            ? '¡Activa tu tarjeta Liomont!'
+                            ? 'Activa tu tarjeta digital'
                             : 'Esta tarjeta está lista para activarse',
                         style: GoogleFonts.inter(
                           fontSize: 22,
@@ -1954,7 +1908,7 @@ class _NfcActivationPage extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.red.withOpacity(0.1),
+                            color: Colors.red.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
@@ -2018,10 +1972,7 @@ class _NfcActivationPage extends StatelessWidget {
                           width: double.infinity,
                           height: 52,
                           child: ElevatedButton(
-                            onPressed: () => context.push(
-                              '/register',
-                              extra: {'pendingNfc': serial},
-                            ),
+                            onPressed: () => context.go('/?pendingNfc=$serial'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primary,
                               foregroundColor: Colors.white,
@@ -2031,7 +1982,7 @@ class _NfcActivationPage extends StatelessWidget {
                               elevation: 0,
                             ),
                             child: Text(
-                              'Crear cuenta',
+                              'Ir a inicio',
                               style: GoogleFonts.inter(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 16,
@@ -2165,7 +2116,7 @@ class _NotFoundPage extends StatelessWidget {
               const SizedBox(height: 32),
               GestureDetector(
                 onTap: () async {
-                  final uri = Uri.parse('https://taploop-software.vercel.app');
+                  final uri = Uri.parse('https://liomont.taploop.com.mx');
                   if (await canLaunchUrl(uri)) {
                     await launchUrl(uri, mode: LaunchMode.externalApplication);
                   }

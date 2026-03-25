@@ -1,4 +1,5 @@
 import '../../services/supabase_service.dart';
+import 'card_repository.dart';
 import '../../../features/analytics/models/team_member_model.dart';
 import '../../../features/auth/models/user_model.dart';
 import '../../../features/card/models/digital_card_model.dart';
@@ -242,7 +243,7 @@ class AdminRepository {
         .eq('card_id', cardId)
         .order('sort_order');
 
-    return DigitalCardModel.fromJson(
+    return CardRepository.buildCardModel(
       cardJson,
       contactItems: (contacts as List)
           .map((e) => ContactItemModel.fromJson(e as Map<String, dynamic>))
@@ -294,5 +295,15 @@ class AdminRepository {
         .eq('id', orgId)
         .single();
     return data as Map<String, dynamic>?;
+  }
+
+  static Future<void> updateOrgLogo({
+    required String orgId,
+    required String companyLogo,
+  }) async {
+    await _db
+        .from('organizations')
+        .update({'company_logo': companyLogo})
+        .eq('id', orgId);
   }
 }

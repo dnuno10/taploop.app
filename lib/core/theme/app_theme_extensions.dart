@@ -24,10 +24,10 @@ extension AppThemeX on BuildContext {
 
   // ─── Borders ─────────────────────────────────────────────────────────────
   Color get borderColor =>
-      isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+      isDark ? const Color(0xFF334155) : const Color(0xFFD4DCE6);
 
   Color get borderStrong =>
-      isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1);
+      isDark ? const Color(0xFF475569) : const Color(0xFFBCC8D6);
 
   // ─── Text ─────────────────────────────────────────────────────────────────
   Color get textPrimary =>

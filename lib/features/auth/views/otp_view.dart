@@ -294,10 +294,10 @@ class _OtpViewState extends State<OtpView> {
                   return;
                 }
                 if (pendingNfc != null && pendingNfc.isNotEmpty) {
-                  context.go('/register', extra: {'pendingNfc': pendingNfc});
+                  context.go('/?pendingNfc=$pendingNfc');
                   return;
                 }
-                context.go('/register');
+                context.go('/');
               },
               child: Text(
                 '← Cambiar correo',

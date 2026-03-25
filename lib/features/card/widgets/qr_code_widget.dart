@@ -9,6 +9,7 @@ class QrCodeWidget extends StatelessWidget {
   final Color foregroundColor;
   final Color backgroundColor;
   final bool showLogo;
+  final String? embeddedLogoUrl;
 
   const QrCodeWidget({
     super.key,
@@ -17,6 +18,7 @@ class QrCodeWidget extends StatelessWidget {
     this.foregroundColor = AppColors.black,
     this.backgroundColor = AppColors.white,
     this.showLogo = true,
+    this.embeddedLogoUrl,
   });
 
   @override
@@ -46,8 +48,9 @@ class QrCodeWidget extends StatelessWidget {
           dataModuleShape: QrDataModuleShape.square,
           color: foregroundColor,
         ),
-        embeddedImage: showLogo
-            ? const AssetImage('assets/images/liomont-logo.png')
+        embeddedImage:
+            showLogo && embeddedLogoUrl != null && embeddedLogoUrl!.isNotEmpty
+            ? NetworkImage(embeddedLogoUrl!)
             : null,
         embeddedImageStyle: showLogo
             ? const QrEmbeddedImageStyle(size: Size(32, 32))

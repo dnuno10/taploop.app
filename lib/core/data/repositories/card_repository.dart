@@ -30,7 +30,7 @@ class CardRepository {
         .eq('card_id', cardId)
         .order('sort_order');
 
-    return DigitalCardModel.fromJson(
+    return buildCardModel(
       cardData,
       contactItems: (contacts as List)
           .map((e) => ContactItemModel.fromJson(e as Map<String, dynamic>))
@@ -227,7 +227,7 @@ class CardRepository {
         .eq('is_visible', true)
         .order('sort_order');
 
-    return DigitalCardModel.fromJson(
+    return buildCardModel(
       cardJson,
       contactItems: (contacts as List)
           .map((e) => ContactItemModel.fromJson(e as Map<String, dynamic>))
@@ -236,6 +236,49 @@ class CardRepository {
           .map((e) => SocialLinkModel.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
+  }
+
+  static Future<DigitalCardModel> buildCardModel(
+    Map<String, dynamic> cardJson, {
+    List<ContactItemModel> contactItems = const [],
+    List<SocialLinkModel> socialLinks = const [],
+  }) async {
+    final hydratedJson = Map<String, dynamic>.from(cardJson);
+    final logoUrl = hydratedJson['company_logo_url'] as String?;
+    if (logoUrl == null || logoUrl.trim().isEmpty) {
+      final orgLogoUrl = await fetchOrganizationLogoUrl(
+        hydratedJson['org_id'] as String?,
+      );
+      if (orgLogoUrl != null && orgLogoUrl.isNotEmpty) {
+        hydratedJson['company_logo_url'] = orgLogoUrl;
+      }
+    }
+
+    return DigitalCardModel.fromJson(
+      hydratedJson,
+      contactItems: contactItems,
+      socialLinks: socialLinks,
+    );
+  }
+
+  static Future<String?> fetchOrganizationLogoUrl(String? orgId) async {
+    if (orgId == null || orgId.isEmpty) return null;
+    final rows = await _db
+        .from('organizations')
+        .select('company_logo')
+        .eq('id', orgId)
+        .limit(1);
+    if ((rows as List).isEmpty) return null;
+    return resolveCompanyLogoUrl(rows.first['company_logo'] as String?);
+  }
+
+  static String? resolveCompanyLogoUrl(String? storedValue) {
+    final value = storedValue?.trim();
+    if (value == null || value.isEmpty) return null;
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+      return value;
+    }
+    return _db.storage.from('company-logos').getPublicUrl(value);
   }
 
   // ─── Save card fields ─────────────────────────────────────────────────────

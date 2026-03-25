@@ -1,4 +1,4 @@
-// ignore: avoid_web_libraries_in_flutter
+// ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
 import 'dart:html' as html;
 
 import 'package:flutter/foundation.dart';
@@ -98,7 +98,14 @@ class _EditCardViewState extends State<EditCardView>
 
   void _onAppStateChanged() {
     final card = appState.currentCard;
-    if (card != null && card.id != _card.id) {
+    if (card != null &&
+        (card.id != _card.id ||
+            card.companyLogoUrl != _card.companyLogoUrl ||
+            card.profilePhotoUrl != _card.profilePhotoUrl ||
+            card.name != _card.name ||
+            card.jobTitle != _card.jobTitle ||
+            card.company != _card.company ||
+            card.bio != _card.bio)) {
       _applyCard(card);
     }
     _loadOrganizationName();
@@ -1169,7 +1176,7 @@ class _LivePreviewPanel extends StatelessWidget {
                 border: Border.all(color: context.borderColor),
               ),
               child: Text(
-                'taploop-software.vercel.app/${card.publicSlug}',
+                'liomont.taploop.com.mx/${card.publicSlug}',
                 style: GoogleFonts.dmSans(
                   fontSize: 12,
                   color: context.textSecondary,
@@ -1355,7 +1362,6 @@ class _AvatarPickerState extends State<_AvatarPicker> {
 
   Future<void> _pickAndUpload() async {
     if (!kIsWeb) return;
-    // ignore: avoid_web_libraries_in_flutter
     final input = html.FileUploadInputElement()
       ..accept = 'image/jpeg,image/png,image/webp';
     input.click();
@@ -1508,7 +1514,6 @@ class _LogoPickerState extends State<_LogoPicker> {
 
   Future<void> _pickAndUpload() async {
     if (!kIsWeb) return;
-    // ignore: avoid_web_libraries_in_flutter
     final input = html.FileUploadInputElement()
       ..accept = 'image/jpeg,image/png,image/webp,image/svg+xml';
     input.click();

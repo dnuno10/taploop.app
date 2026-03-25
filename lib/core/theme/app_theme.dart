@@ -121,7 +121,7 @@ class AppTheme {
         error: AppColors.error,
       ),
       scaffoldBackgroundColor: AppColors.white,
-      cardColor: const Color(0xFFFCFAF8),
+      cardColor: AppColors.white,
       textTheme: textTheme,
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.white,

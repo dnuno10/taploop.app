@@ -219,7 +219,7 @@ class DigitalCardModel {
     if (companyLogoUrl != null) 'company_logo_url': companyLogoUrl,
   };
 
-  String get publicUrl => 'https://taploop-software.vercel.app/$publicSlug';
+  String get publicUrl => 'https://liomont.taploop.com.mx/$publicSlug';
 
   DigitalCardModel copyWith({
     String? id,

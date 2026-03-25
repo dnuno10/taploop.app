@@ -487,35 +487,20 @@ class _ScreenContent extends StatelessWidget {
             ),
           ],
           SizedBox(height: 8 * scale),
-          Container(
-            height: 30 * scale,
-            constraints: BoxConstraints(maxWidth: 90 * scale),
-            padding: EdgeInsets.symmetric(
-              horizontal: 6 * scale,
-              vertical: 3 * scale,
+          if (card.companyLogoUrl != null && card.companyLogoUrl!.isNotEmpty)
+            Container(
+              height: 30 * scale,
+              constraints: BoxConstraints(maxWidth: 90 * scale),
+              padding: EdgeInsets.symmetric(
+                horizontal: 6 * scale,
+                vertical: 3 * scale,
+              ),
+              child: Image.network(
+                card.companyLogoUrl!,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Image.asset(
-                    'assets/images/liomont-logo.png',
-                    fit: BoxFit.contain,
-                  ),
-                ),
-                if (card.companyLogoUrl != null &&
-                    card.companyLogoUrl!.isNotEmpty)
-                  SizedBox(
-                    height: 9 * scale,
-                    child: Image.network(
-                      card.companyLogoUrl!,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                    ),
-                  ),
-              ],
-            ),
-          ),
         ],
       ),
     );
@@ -582,7 +567,8 @@ class _ScreenContent extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                if (card.companyLogoUrl != null) ...[
+                if (card.companyLogoUrl != null &&
+                    card.companyLogoUrl!.isNotEmpty) ...[
                   SizedBox(height: 6 * scale),
                   Container(
                     height: 26 * scale,
@@ -591,25 +577,10 @@ class _ScreenContent extends StatelessWidget {
                       horizontal: 5 * scale,
                       vertical: 3 * scale,
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Expanded(
-                          child: Image.asset(
-                            'assets/images/liomont-logo.png',
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                        SizedBox(
-                          height: 8 * scale,
-                          child: Image.network(
-                            card.companyLogoUrl!,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) =>
-                                const SizedBox.shrink(),
-                          ),
-                        ),
-                      ],
+                    child: Image.network(
+                      card.companyLogoUrl!,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                     ),
                   ),
                 ],
@@ -678,35 +649,20 @@ class _ScreenContent extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
           SizedBox(height: 8 * scale),
-          Container(
-            height: 28 * scale,
-            constraints: BoxConstraints(maxWidth: 88 * scale),
-            padding: EdgeInsets.symmetric(
-              horizontal: 6 * scale,
-              vertical: 3 * scale,
+          if (card.companyLogoUrl != null && card.companyLogoUrl!.isNotEmpty)
+            Container(
+              height: 28 * scale,
+              constraints: BoxConstraints(maxWidth: 88 * scale),
+              padding: EdgeInsets.symmetric(
+                horizontal: 6 * scale,
+                vertical: 3 * scale,
+              ),
+              child: Image.network(
+                card.companyLogoUrl!,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Image.asset(
-                    'assets/images/liomont-logo.png',
-                    fit: BoxFit.contain,
-                  ),
-                ),
-                if (card.companyLogoUrl != null &&
-                    card.companyLogoUrl!.isNotEmpty)
-                  SizedBox(
-                    height: 8 * scale,
-                    child: Image.network(
-                      card.companyLogoUrl!,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                    ),
-                  ),
-              ],
-            ),
-          ),
         ],
       ),
     );

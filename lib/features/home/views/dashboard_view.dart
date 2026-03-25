@@ -374,10 +374,6 @@ class _DashboardHeader extends StatelessWidget {
             ],
           ),
         ),
-        SizedBox(
-          width: isWide ? 280 : double.infinity,
-          child: _ShellSearchField(),
-        ),
         _HeaderButton(
           label: 'Editar tarjeta',
           icon: Icons.edit_outlined,
@@ -421,40 +417,6 @@ class _DashboardHeader extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _ShellSearchField extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      decoration: InputDecoration(
-        hintText: 'Buscar métricas, leads o campañas',
-        hintStyle: GoogleFonts.dmSans(
-          color: context.textSecondary.withValues(alpha: 0.75),
-          fontSize: 13,
-        ),
-        prefixIcon: Icon(Icons.search_rounded, color: context.textSecondary),
-        filled: true,
-        fillColor: context.bgCard,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: BorderSide(color: context.borderColor),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: BorderSide(color: context.borderColor),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: const BorderSide(color: AppColors.primary),
-        ),
-      ),
     );
   }
 }

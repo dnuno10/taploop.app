@@ -1,4 +1,4 @@
-// ignore: avoid_web_libraries_in_flutter
+// ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
 import 'dart:html' as html;
 
 import 'package:flutter/material.dart';
@@ -51,9 +51,11 @@ class _ShareCardViewState extends State<ShareCardView> {
   void _onAppStateChanged() {
     final cardId = appState.currentCard?.id;
     _bindRealtime();
-    if (cardId == null || cardId == _loadedCardId) return;
-    _loadAnalytics();
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    if (cardId != null && cardId != _loadedCardId) {
+      _loadAnalytics();
+    }
+    setState(() {});
   }
 
   void _bindRealtime() {
@@ -485,18 +487,25 @@ class _MinimalCardPreview extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Image.asset(
-                  'assets/images/liomont-logo.png',
-                  height: height * 0.30,
-                  errorBuilder: (_, __, ___) => Text(
-                    'TapLoop',
+                if (card?.companyLogoUrl != null &&
+                    card!.companyLogoUrl!.isNotEmpty)
+                  Image.network(
+                    card.companyLogoUrl!,
+                    height: height * 0.30,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  )
+                else
+                  Text(
+                    card?.company.isNotEmpty == true
+                        ? card!.company
+                        : 'TapLoop',
                     style: GoogleFonts.outfit(
                       fontSize: height * 0.15,
                       fontWeight: FontWeight.w800,
                       color: AppColors.primary,
                     ),
                   ),
-                ),
                 Icon(Icons.wifi, size: height * 0.20, color: context.textMuted),
               ],
             ),
@@ -690,11 +699,12 @@ class _QrSectionState extends State<_QrSection> {
                     : '',
                 size: 200,
                 foregroundColor: widget.qrColor,
-                showLogo: false,
+                showLogo: true,
+                embeddedLogoUrl: appState.currentCard?.companyLogoUrl,
               ),
               const SizedBox(height: 12),
               Text(
-                'taploop-software.vercel.app/${appState.currentCard?.publicSlug ?? ''}',
+                'liomont.taploop.com.mx/${appState.currentCard?.publicSlug ?? ''}',
                 style: GoogleFonts.dmSans(
                   fontSize: 13,
                   color: context.textSecondary,

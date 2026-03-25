@@ -3,6 +3,7 @@ import '../../features/auth/models/user_model.dart';
 import '../../features/card/models/digital_card_model.dart';
 import '../../features/card/models/contact_item_model.dart';
 import '../../features/card/models/social_link_model.dart';
+import '../data/repositories/card_repository.dart';
 import '../services/supabase_service.dart';
 
 class AuthService {
@@ -179,7 +180,7 @@ class AuthService {
         .eq('card_id', cardId)
         .order('sort_order');
 
-    return DigitalCardModel.fromJson(
+    return CardRepository.buildCardModel(
       cardJson,
       contactItems: (contacts as List)
           .map((e) => ContactItemModel.fromJson(e as Map<String, dynamic>))

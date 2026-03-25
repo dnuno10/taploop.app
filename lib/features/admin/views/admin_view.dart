@@ -1,4 +1,4 @@
-// ignore: avoid_web_libraries_in_flutter
+// ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
 import 'dart:html' as html;
 
 import 'package:flutter/foundation.dart';
@@ -653,6 +653,45 @@ class _CompanyHeader extends StatefulWidget {
 
 class _CompanyHeaderState extends State<_CompanyHeader> {
   bool _uploading = false;
+  String? _organizationLogoUrl;
+  String? _organizationLogoPath;
+
+  @override
+  void initState() {
+    super.initState();
+    appState.addListener(_onAppStateChanged);
+    _loadOrganizationLogo();
+  }
+
+  @override
+  void dispose() {
+    appState.removeListener(_onAppStateChanged);
+    super.dispose();
+  }
+
+  void _onAppStateChanged() {
+    _loadOrganizationLogo();
+  }
+
+  Future<void> _loadOrganizationLogo() async {
+    final orgId = appState.currentUser?.orgId;
+    if (orgId == null || orgId.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _organizationLogoUrl = null;
+        _organizationLogoPath = null;
+      });
+      return;
+    }
+    final orgData = await AdminRepository.fetchOrg(orgId);
+    final logoPath = orgData?['company_logo'] as String?;
+    final logoUrl = CardRepository.resolveCompanyLogoUrl(logoPath);
+    if (!mounted) return;
+    setState(() {
+      _organizationLogoPath = logoPath;
+      _organizationLogoUrl = logoUrl;
+    });
+  }
 
   String _initials(String company) {
     final parts = company.trim().split(' ');
@@ -661,8 +700,10 @@ class _CompanyHeaderState extends State<_CompanyHeader> {
     return '?';
   }
 
-  Future<void> _pickAndUploadLogo(DigitalCardModel card) async {
+  Future<void> _pickAndUploadLogo() async {
     if (!kIsWeb || _uploading) return;
+    final orgId = appState.currentUser?.orgId;
+    if (orgId == null || orgId.isEmpty) return;
 
     final input = html.FileUploadInputElement()
       ..accept = 'image/jpeg,image/png,image/webp,image/svg+xml';
@@ -687,42 +728,66 @@ class _CompanyHeaderState extends State<_CompanyHeader> {
       await reader.onLoad.first;
       final bytes = reader.result as Uint8List;
 
-      final userId = card.userId ?? 'unknown';
       final ext = file.type.contains('png')
           ? 'png'
           : file.type.contains('svg')
           ? 'svg'
           : 'jpg';
-      final path = '$userId/${card.id}/logo.$ext';
+      final path = '$orgId/logo_${DateTime.now().millisecondsSinceEpoch}.$ext';
 
       await SupabaseService.client.storage
-          .from('logos')
+          .from('company-logos')
           .uploadBinary(
             path,
             bytes,
             fileOptions: FileOptions(upsert: true, contentType: file.type),
           );
 
-      final rawUrl = SupabaseService.client.storage
-          .from('logos')
-          .getPublicUrl(path);
-      final updated = card.copyWith(
-        companyLogoUrl: '$rawUrl?t=${DateTime.now().millisecondsSinceEpoch}',
-      );
+      await AdminRepository.updateOrgLogo(orgId: orgId, companyLogo: path);
 
-      await CardRepository.saveCard(updated);
-      appState.updateCard(updated);
+      final previousPath = _organizationLogoPath;
+      if (previousPath != null &&
+          previousPath.isNotEmpty &&
+          previousPath != path) {
+        try {
+          await SupabaseService.client.storage.from('company-logos').remove([
+            previousPath,
+          ]);
+        } catch (_) {}
+      }
+
+      final rawUrl = CardRepository.resolveCompanyLogoUrl(path);
+      final updatedLogoUrl = rawUrl == null
+          ? null
+          : '$rawUrl?t=${DateTime.now().millisecondsSinceEpoch}';
+      final currentCard = appState.currentCard;
+      if (updatedLogoUrl != null &&
+          currentCard != null &&
+          currentCard.orgId == orgId &&
+          (currentCard.companyLogoUrl == null ||
+              currentCard.companyLogoUrl!.isEmpty ||
+              currentCard.companyLogoUrl == _organizationLogoUrl)) {
+        appState.updateCard(
+          currentCard.copyWith(companyLogoUrl: updatedLogoUrl),
+        );
+      }
+      if (mounted) {
+        setState(() {
+          _organizationLogoPath = path;
+          _organizationLogoUrl = updatedLogoUrl;
+        });
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Imagen actualizada.')));
+        ).showSnackBar(const SnackBar(content: Text('Logo actualizado.')));
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error al subir imagen: $e')));
+        ).showSnackBar(SnackBar(content: Text('Error al subir logo: $e')));
       }
     } finally {
       if (mounted) setState(() => _uploading = false);
@@ -736,21 +801,20 @@ class _CompanyHeaderState extends State<_CompanyHeader> {
       builder: (context, _) {
         final card = appState.currentCard;
         final company = card?.company ?? '';
-        final logoUrl = card?.companyLogoUrl;
-        final isLiomont = company.trim().toLowerCase() == 'liomont';
+        final logoUrl = _organizationLogoUrl ?? card?.companyLogoUrl;
         final content = Row(
           children: [
             GestureDetector(
-              onTap: card == null ? null : () => _pickAndUploadLogo(card),
+              onTap: appState.currentUser?.orgId == null
+                  ? null
+                  : _pickAndUploadLogo,
               child: Container(
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: isLiomont ? Colors.transparent : context.bgPage,
+                  color: context.bgPage,
                   borderRadius: BorderRadius.circular(14),
-                  border: isLiomont
-                      ? null
-                      : Border.all(color: context.borderColor),
+                  border: Border.all(color: context.borderColor),
                   image: logoUrl != null
                       ? DecorationImage(
                           image: NetworkImage(logoUrl),
@@ -793,12 +857,10 @@ class _CompanyHeaderState extends State<_CompanyHeader> {
                       color: context.textSecondary,
                     ),
                   ),
-                  if (isLiomont) ...[
+                  if (appState.currentUser?.orgId != null) ...[
                     const SizedBox(height: 8),
                     TextButton.icon(
-                      onPressed: card == null
-                          ? null
-                          : () => _pickAndUploadLogo(card),
+                      onPressed: _pickAndUploadLogo,
                       icon: _uploading
                           ? SizedBox(
                               width: 14,
@@ -824,20 +886,15 @@ class _CompanyHeaderState extends State<_CompanyHeader> {
           ],
         );
 
-        return (isLiomont
-                ? content
-                : Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: context.bgCard,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: context.borderColor),
-                    ),
-                    child: content,
-                  ))
-            .animate()
-            .fadeIn(duration: 400.ms)
-            .slideY(begin: 0.05, end: 0);
+        return Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: context.bgCard,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: context.borderColor),
+          ),
+          child: content,
+        ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.05, end: 0);
       },
     );
   }
@@ -2861,7 +2918,7 @@ class _AdminPreviewPanel extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'taploop-software.vercel.app/${card.publicSlug}',
+            'liomont.taploop.com.mx/${card.publicSlug}',
             style: GoogleFonts.dmSans(fontSize: 12, color: context.textMuted),
           ),
           const SizedBox(height: 24),
