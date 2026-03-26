@@ -1,6 +1,9 @@
+import 'package:flutter/foundation.dart';
+
 import '../../services/supabase_service.dart';
 import '../../../features/analytics/models/lead_model.dart';
 import '../../../features/analytics/models/visit_event_model.dart';
+import 'analytics_repository.dart';
 
 class _VisitorSession {
   final String signature;
@@ -45,6 +48,7 @@ class LeadRepository {
       visitEvents = (rows as List)
           .map((e) => VisitEventModel.fromJson(e as Map<String, dynamic>))
           .toList();
+      visitEvents = await AnalyticsRepository.hydrateEvents(visitEvents);
     } catch (_) {
       visitEvents = const [];
     }
@@ -93,6 +97,7 @@ class LeadRepository {
       visitEvents = (visitRows as List)
           .map((e) => VisitEventModel.fromJson(e as Map<String, dynamic>))
           .toList();
+      visitEvents = await AnalyticsRepository.hydrateEvents(visitEvents);
     } catch (_) {
       visitEvents = const [];
     }
@@ -459,9 +464,18 @@ class LeadRepository {
     String? company,
     required Map<String, String> formData,
   }) async {
-    await _db.rpc(
-      'submit_card_form',
-      params: {
+    final errors = <String>[];
+    final attempts = <Map<String, dynamic>>[
+      {
+        'p_card_id': cardId,
+        'p_form_id': formType,
+        'p_name': name,
+        'p_email': email,
+        'p_phone': phone,
+        'p_company': company,
+        'p_form_data': formData,
+      },
+      {
         'p_card_id': cardId,
         'p_form_type': formType,
         'p_name': name,
@@ -470,6 +484,19 @@ class LeadRepository {
         'p_company': company,
         'p_form_data': formData,
       },
-    );
+    ];
+
+    for (final params in attempts) {
+      try {
+        await _db.rpc('submit_card_form', params: params);
+        return;
+      } catch (error) {
+        errors.add('params=${params.keys.join(",")}: $error');
+      }
+    }
+
+    final message = 'submit_card_form failed: ${errors.join(' | ')}';
+    debugPrint('[LeadRepository] $message');
+    throw Exception(message);
   }
 }

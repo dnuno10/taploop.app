@@ -137,12 +137,12 @@ class _AnalyticsDashboardViewState extends State<AnalyticsDashboardView>
       ['Visitas', analytics.totalVisits],
       ['Taps NFC', analytics.totalTaps],
       ['Clicks', analytics.totalClicks],
-      ['Interacciones totales', analytics.totalVisits + analytics.totalTaps],
-      ['Visitas esta semana', analytics.visitsThisWeek],
-      ['Visitas semana anterior', analytics.visitsLastWeek],
+      ['Interacciones totales', analytics.totalInteractions],
+      ['Visitas en el rango', analytics.visitsThisWeek],
+      ['Visitas período anterior', analytics.visitsLastWeek],
       [
-        'Crecimiento semanal %',
-        analytics.weeklyGrowthPercent.toStringAsFixed(1),
+        'Crecimiento de interacciones %',
+        analytics.interactionsGrowthPercent.toStringAsFixed(1),
       ],
       [],
       ['Visitas por día', ''],
@@ -216,15 +216,12 @@ class _AnalyticsDashboardViewState extends State<AnalyticsDashboardView>
               ['Visitas', '${analytics.totalVisits}'],
               ['Taps NFC', '${analytics.totalTaps}'],
               ['Clicks', '${analytics.totalClicks}'],
+              ['Interacciones totales', '${analytics.totalInteractions}'],
+              ['Visitas en el rango', '${analytics.visitsThisWeek}'],
+              ['Visitas período anterior', '${analytics.visitsLastWeek}'],
               [
-                'Interacciones totales',
-                '${analytics.totalVisits + analytics.totalTaps}',
-              ],
-              ['Visitas esta semana', '${analytics.visitsThisWeek}'],
-              ['Visitas semana anterior', '${analytics.visitsLastWeek}'],
-              [
-                'Crecimiento semanal',
-                '${analytics.weeklyGrowthPercent.toStringAsFixed(1)}%',
+                'Crecimiento de interacciones',
+                '${analytics.interactionsGrowthPercent.toStringAsFixed(1)}%',
               ],
             ],
           ),
@@ -598,6 +595,11 @@ class _DesktopLayout extends StatelessWidget {
   }
 }
 
+String _formatTrendValue(double value) {
+  final prefix = value >= 0 ? '+' : '';
+  return '$prefix${value.toStringAsFixed(1)}%';
+}
+
 // ─── Total Block ─────────────────────────────────────────────────────────────
 
 class _TotalBlock extends StatelessWidget {
@@ -606,8 +608,8 @@ class _TotalBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final total = analytics.totalVisits + analytics.totalTaps;
-    final trendColor = analytics.isGrowing
+    final total = analytics.totalInteractions;
+    final trendColor = analytics.interactionsGrowing
         ? AppColors.success
         : AppColors.error;
 
@@ -655,7 +657,7 @@ class _TotalBlock extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      analytics.isGrowing
+                      analytics.interactionsGrowing
                           ? Icons.arrow_upward
                           : Icons.arrow_downward,
                       size: 11,
@@ -663,7 +665,7 @@ class _TotalBlock extends StatelessWidget {
                     ),
                     const SizedBox(width: 3),
                     Text(
-                      '${analytics.weeklyGrowthPercent.toStringAsFixed(1)}%',
+                      _formatTrendValue(analytics.interactionsGrowthPercent),
                       style: GoogleFonts.dmSans(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -675,7 +677,7 @@ class _TotalBlock extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Text(
-                'vs semana anterior',
+                'vs período anterior',
                 style: GoogleFonts.dmSans(
                   fontSize: 12,
                   color: context.textMuted,
@@ -703,22 +705,22 @@ class _MetricRow extends StatelessWidget {
         label: 'Visitas',
         value: '${analytics.totalVisits}',
         icon: Icons.visibility_outlined,
-        trend: '+${analytics.weeklyGrowthPercent.toStringAsFixed(0)}%',
-        positive: analytics.isGrowing,
+        trend: _formatTrendValue(analytics.visitsGrowthPercent),
+        positive: analytics.visitsGrowthPercent >= 0,
       ),
       _MetricItem(
         label: 'Taps NFC',
         value: '${analytics.totalTaps}',
         icon: Icons.nfc_outlined,
-        trend: '+12%',
-        positive: true,
+        trend: _formatTrendValue(analytics.tapsGrowthPercent),
+        positive: analytics.tapsGrowthPercent >= 0,
       ),
       _MetricItem(
         label: 'Clicks',
         value: '${analytics.totalClicks}',
         icon: Icons.ads_click_outlined,
-        trend: '+31%',
-        positive: true,
+        trend: _formatTrendValue(analytics.clicksGrowthPercent),
+        positive: analytics.clicksGrowthPercent >= 0,
       ),
     ];
 
@@ -910,7 +912,7 @@ class _ChartBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final trendColor = analytics.isGrowing
+    final trendColor = analytics.visitsGrowthPercent >= 0
         ? AppColors.success
         : AppColors.error;
 
@@ -937,7 +939,7 @@ class _ChartBlock extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                '${analytics.visitsThisWeek} esta semana',
+                '${analytics.totalVisits} en el rango',
                 style: GoogleFonts.dmSans(
                   fontSize: 12,
                   color: context.textMuted,
@@ -957,7 +959,7 @@ class _ChartBlock extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      analytics.isGrowing
+                      analytics.visitsGrowthPercent >= 0
                           ? Icons.trending_up
                           : Icons.trending_down,
                       size: 13,
@@ -965,7 +967,7 @@ class _ChartBlock extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '${analytics.weeklyGrowthPercent.toStringAsFixed(1)}%',
+                      _formatTrendValue(analytics.visitsGrowthPercent),
                       style: GoogleFonts.dmSans(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,

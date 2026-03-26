@@ -8,6 +8,7 @@ import '../../../core/theme/app_theme_extensions.dart';
 import '../../../core/data/app_state.dart';
 import '../../../core/data/repositories/lead_repository.dart';
 import '../../../core/services/metrics_realtime_service.dart';
+import '../../../core/widgets/taploop_toast.dart';
 import '../models/lead_model.dart';
 
 // ─── Simulated timeline events ────────────────────────────────────────────────
@@ -299,6 +300,13 @@ class _LeadIntelligenceViewState extends State<LeadIntelligenceView> {
   Future<void> _markAsConverted(LeadModel lead) async {
     try {
       await LeadRepository.markConverted(lead.id, true);
+      if (mounted) {
+        TapLoopToast.show(
+          context,
+          'Lead marcado como venta correctamente.',
+          TapLoopToastType.success,
+        );
+      }
     } catch (_) {}
     if (!mounted) return;
     setState(() {
@@ -405,6 +413,8 @@ class _LeadIntelligenceViewState extends State<LeadIntelligenceView> {
                   TextField(
                     controller: _searchCtrl,
                     onChanged: (v) => setState(() => _search = v),
+                    inputFormatters: [LengthLimitingTextInputFormatter(200)],
+                    maxLength: 200,
                     style: GoogleFonts.dmSans(
                       fontSize: 13,
                       color: context.textPrimary,
@@ -415,6 +425,7 @@ class _LeadIntelligenceViewState extends State<LeadIntelligenceView> {
                         fontSize: 13,
                         color: context.textMuted,
                       ),
+                      counterText: '',
                       prefixIcon: Icon(
                         Icons.search_rounded,
                         size: 18,
@@ -1064,16 +1075,6 @@ class _FormEventButton extends StatelessWidget {
                         ),
                       ),
                     ),
-                    _FollowUpIconAction(
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Marcado para seguimiento.'),
-                          ),
-                        );
-                      },
-                    ),
                     IconButton(
                       icon: const Icon(Icons.close_rounded, size: 20),
                       color: ctx.textMuted,
@@ -1282,37 +1283,6 @@ class _DialogPrimaryAction extends StatelessWidget {
                 ),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FollowUpIconAction extends StatelessWidget {
-  final VoidCallback onTap;
-  const _FollowUpIconAction({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 28,
-          height: 28,
-          margin: const EdgeInsets.only(right: 2),
-          decoration: BoxDecoration(
-            color: context.isDark
-                ? AppColors.primary.withValues(alpha: 0.1)
-                : AppColors.primary.withValues(alpha: 0.04),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Icon(
-            Icons.bookmark_add_outlined,
-            size: 16,
-            color: AppColors.primary,
           ),
         ),
       ),

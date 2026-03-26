@@ -1009,8 +1009,13 @@ class _ConversionPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final totalVisits = math.max(analytics?.totalVisits ?? 0, 1);
+    final totalInteractions = math.max(analytics?.totalInteractions ?? 0, 1);
     final metrics = [
+      (
+        label: 'Visitas',
+        value: analytics?.totalVisits ?? 0,
+        color: AppColors.primary,
+      ),
       (
         label: 'Toques NFC',
         value: analytics?.totalTaps ?? 0,
@@ -1037,7 +1042,7 @@ class _ConversionPanel extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Distribución de interacción sobre el total de visitas.',
+            'Participación de cada tipo de evento dentro del rango.',
             style: GoogleFonts.dmSans(
               color: context.textSecondary,
               fontSize: 13,
@@ -1050,7 +1055,7 @@ class _ConversionPanel extends StatelessWidget {
               child: _ProgressMetric(
                 label: metric.label,
                 value: metric.value,
-                progress: metric.value / totalVisits,
+                progress: metric.value / totalInteractions,
                 color: metric.color,
               ),
             ),
@@ -1096,6 +1101,15 @@ class _ProgressMetric extends StatelessWidget {
                 color: context.textSecondary,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '${(progress.clamp(0, 1) * 100).toStringAsFixed(0)}%',
+              style: GoogleFonts.dmSans(
+                color: context.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ],

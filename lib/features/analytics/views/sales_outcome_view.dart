@@ -6,6 +6,7 @@ import '../../../core/theme/app_theme_extensions.dart';
 import '../../../core/data/app_state.dart';
 import '../../../core/data/repositories/lead_repository.dart';
 import '../../../core/services/metrics_realtime_service.dart';
+import '../../../core/widgets/taploop_toast.dart';
 import '../models/lead_model.dart';
 
 class SalesOutcomeView extends StatefulWidget {
@@ -16,7 +17,7 @@ class SalesOutcomeView extends StatefulWidget {
 }
 
 class _SalesOutcomeViewState extends State<SalesOutcomeView> {
-  final Set<String> _confirming = {};
+  final Set<String> _updatingLeads = {};
   List<LeadModel> _allLeads = [];
   bool _loading = true;
   String? _loadedCardId;
@@ -105,37 +106,39 @@ class _SalesOutcomeViewState extends State<SalesOutcomeView> {
     return _convertedLeads.length / total;
   }
 
-  void _markAsSale(LeadModel lead) async {
-    setState(() => _confirming.add(lead.id));
-    await Future.delayed(const Duration(milliseconds: 600));
-    if (!mounted) return;
-    setState(() {
-      final idx = _allLeads.indexWhere((l) => l.id == lead.id);
-      if (idx != -1) _allLeads[idx].isConverted = true;
-      _confirming.remove(lead.id);
-    });
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle, color: Colors.white, size: 18),
-            const SizedBox(width: 8),
-            Text(
-              'Lead convertido correctamente',
-              style: GoogleFonts.outfit(
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: AppColors.success,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+  Future<void> _setSaleStatus(LeadModel lead, bool isConverted) async {
+    if (_updatingLeads.contains(lead.id)) return;
+
+    setState(() => _updatingLeads.add(lead.id));
+    try {
+      await LeadRepository.markConverted(lead.id, isConverted);
+      if (!mounted) return;
+      setState(() {
+        _allLeads = _allLeads
+            .map(
+              (item) => item.id == lead.id
+                  ? item.copyWith(isConverted: isConverted)
+                  : item,
+            )
+            .toList();
+        _updatingLeads.remove(lead.id);
+      });
+      TapLoopToast.show(
+        context,
+        isConverted
+            ? 'Venta registrada correctamente.'
+            : 'Venta desmarcada correctamente.',
+        TapLoopToastType.success,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _updatingLeads.remove(lead.id));
+      TapLoopToast.show(
+        context,
+        'Error al actualizar la venta: $error',
+        TapLoopToastType.error,
+      );
+    }
   }
 
   @override
@@ -238,7 +241,9 @@ class _SalesOutcomeViewState extends State<SalesOutcomeView> {
             delegate: SliverChildBuilderDelegate(
               (context, i) => _ConvertedRow(
                 lead: _convertedLeads[i],
+                isUpdating: _updatingLeads.contains(_convertedLeads[i].id),
                 showDivider: i < _convertedLeads.length - 1,
+                onToggle: () => _setSaleStatus(_convertedLeads[i], false),
               ),
               childCount: _convertedLeads.length,
             ),
@@ -266,9 +271,9 @@ class _SalesOutcomeViewState extends State<SalesOutcomeView> {
             delegate: SliverChildBuilderDelegate(
               (context, i) => _PendingRow(
                 lead: _pendingLeads[i],
-                isConfirming: _confirming.contains(_pendingLeads[i].id),
+                isUpdating: _updatingLeads.contains(_pendingLeads[i].id),
                 showDivider: i < _pendingLeads.length - 1,
-                onMark: () => _markAsSale(_pendingLeads[i]),
+                onToggle: () => _setSaleStatus(_pendingLeads[i], true),
               ),
               childCount: _pendingLeads.length,
             ),
@@ -330,8 +335,16 @@ class _MetricBlock extends StatelessWidget {
 
 class _ConvertedRow extends StatelessWidget {
   final LeadModel lead;
+  final bool isUpdating;
   final bool showDivider;
-  const _ConvertedRow({required this.lead, required this.showDivider});
+  final VoidCallback onToggle;
+
+  const _ConvertedRow({
+    required this.lead,
+    required this.isUpdating,
+    required this.showDivider,
+    required this.onToggle,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -380,6 +393,17 @@ class _ConvertedRow extends StatelessWidget {
                   ],
                 ),
               ),
+              const SizedBox(width: 12),
+              _SaleToggleButton(
+                isUpdating: isUpdating,
+                label: 'Desmarcar',
+                icon: Icons.remove_circle_outline_rounded,
+                color: const Color(0xFFB45309),
+                backgroundColor: context.isDark
+                    ? const Color(0xFFB45309).withValues(alpha: 0.14)
+                    : const Color(0xFFB45309).withValues(alpha: 0.08),
+                onTap: onToggle,
+              ),
             ],
           ),
         ),
@@ -399,15 +423,15 @@ class _ConvertedRow extends StatelessWidget {
 
 class _PendingRow extends StatelessWidget {
   final LeadModel lead;
-  final bool isConfirming;
+  final bool isUpdating;
   final bool showDivider;
-  final VoidCallback onMark;
+  final VoidCallback onToggle;
 
   const _PendingRow({
     required this.lead,
-    required this.isConfirming,
+    required this.isUpdating,
     required this.showDivider,
-    required this.onMark,
+    required this.onToggle,
   });
 
   @override
@@ -450,57 +474,15 @@ class _PendingRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              MouseRegion(
-                cursor: isConfirming
-                    ? SystemMouseCursors.basic
-                    : SystemMouseCursors.click,
-                child: GestureDetector(
-                  onTap: isConfirming ? null : onMark,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 9),
-                    decoration: BoxDecoration(
-                      color: isConfirming
-                          ? const Color(0xFF15803D).withValues(alpha: 0.08)
-                          : context.isDark
-                          ? const Color(0xFF15803D).withValues(alpha: 0.1)
-                          : const Color(0xFF15803D).withValues(alpha: 0.04),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: SizedBox(
-                      width: 118,
-                      child: Center(
-                        child: isConfirming
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Color(0xFF15803D),
-                                ),
-                              )
-                            : Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    Icons.attach_money_rounded,
-                                    size: 14,
-                                    color: Color(0xFF15803D),
-                                  ),
-                                  const SizedBox(width: 5),
-                                  Text(
-                                    'Marcar venta',
-                                    style: GoogleFonts.dmSans(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF15803D),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                      ),
-                    ),
-                  ),
-                ),
+              _SaleToggleButton(
+                isUpdating: isUpdating,
+                label: 'Marcar venta',
+                icon: Icons.attach_money_rounded,
+                color: const Color(0xFF15803D),
+                backgroundColor: context.isDark
+                    ? const Color(0xFF15803D).withValues(alpha: 0.1)
+                    : const Color(0xFF15803D).withValues(alpha: 0.04),
+                onTap: onToggle,
               ),
             ],
           ),
@@ -513,6 +495,70 @@ class _PendingRow extends StatelessWidget {
             endIndent: 20,
           ),
       ],
+    );
+  }
+}
+
+class _SaleToggleButton extends StatelessWidget {
+  final bool isUpdating;
+  final String label;
+  final IconData icon;
+  final Color color;
+  final Color backgroundColor;
+  final VoidCallback onTap;
+
+  const _SaleToggleButton({
+    required this.isUpdating,
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.backgroundColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: isUpdating ? SystemMouseCursors.basic : SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: isUpdating ? null : onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 9),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: SizedBox(
+            width: 118,
+            child: Center(
+              child: isUpdating
+                  ? SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: color,
+                      ),
+                    )
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(icon, size: 14, color: color),
+                        const SizedBox(width: 5),
+                        Text(
+                          label,
+                          style: GoogleFonts.dmSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: color,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

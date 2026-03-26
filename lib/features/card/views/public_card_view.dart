@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -90,7 +91,7 @@ class _PublicCardViewState extends State<PublicCardView> {
         }
         if (card != null && card.isActive) {
           final source = (widget.via == 'qr') ? 'qr' : 'link';
-          AnalyticsRepository.recordVisit(card.id, source);
+          await AnalyticsRepository.recordVisit(card.id, source);
         }
       }
     } catch (e) {
@@ -133,7 +134,7 @@ class _PublicCardViewState extends State<PublicCardView> {
       });
     }
     if (card != null && card.isActive) {
-      AnalyticsRepository.recordVisit(card.id, 'nfc');
+      await AnalyticsRepository.recordVisit(card.id, 'nfc');
     }
   }
 
@@ -946,16 +947,10 @@ class _ContactSection extends StatelessWidget {
   });
 
   Future<void> _handleTap(ContactItemModel item) async {
-    AnalyticsRepository.recordLinkClick(
-      cardId: cardId,
-      linkId: item.id,
-      label: item.displayLabel,
-      platform: item.type.name,
-    );
     AnalyticsRepository.recordInteraction(
       cardId: cardId,
       source: 'contact',
-      label: item.displayLabel,
+      contactItemId: item.id,
     );
     final Uri uri;
     switch (item.type) {
@@ -1075,16 +1070,10 @@ class _SocialSection extends StatelessWidget {
   });
 
   Future<void> _openUrl(SocialLinkModel link) async {
-    AnalyticsRepository.recordLinkClick(
-      cardId: cardId,
-      linkId: link.id,
-      label: link.label,
-      platform: link.platform.name,
-    );
     AnalyticsRepository.recordInteraction(
       cardId: cardId,
       source: 'social',
-      label: link.label.isNotEmpty ? link.label : link.platform.name,
+      socialLinkId: link.id,
     );
     final uri = Uri.parse(
       link.url.startsWith('http') ? link.url : 'https://${link.url}',
@@ -1495,6 +1484,22 @@ class _FormCardState extends State<_FormCard> {
     super.dispose();
   }
 
+  SmartFormFieldModel? _referenceNameField(List<SmartFormFieldModel> fields) {
+    for (final field in fields) {
+      if (field.fieldType == SmartFormFieldType.text) {
+        return field;
+      }
+    }
+
+    for (final field in fields) {
+      if (field.label.toLowerCase().contains('nombre')) {
+        return field;
+      }
+    }
+
+    return fields.isNotEmpty ? fields.first : null;
+  }
+
   Future<void> _submit() async {
     if (_alreadySubmittedOnDevice) {
       if (mounted) {
@@ -1530,11 +1535,10 @@ class _FormCardState extends State<_FormCard> {
       if (deviceId != null && deviceId.isNotEmpty) {
         formData['_client_device_id'] = deviceId;
       }
-      final nameField = fields.firstWhere(
-        (f) => f.label.toLowerCase().contains('nombre'),
-        orElse: () => fields.first,
-      );
-      final name = _ctrl[nameField.id]?.text.trim() ?? '';
+      final nameField = _referenceNameField(fields);
+      final name = nameField == null
+          ? ''
+          : (_ctrl[nameField.id]?.text.trim() ?? '');
       final email = fields
           .where(
             (f) =>
@@ -1572,7 +1576,7 @@ class _FormCardState extends State<_FormCard> {
       AnalyticsRepository.recordInteraction(
         cardId: widget.card.id,
         source: 'form',
-        label: widget.form.name,
+        smartFormId: widget.form.id,
       );
       await markLocalLeadSubmission(
         cardId: widget.card.id,
@@ -1586,6 +1590,7 @@ class _FormCardState extends State<_FormCard> {
         });
       }
     } catch (e) {
+      debugPrint('[PublicCardView] submit form error: $e');
       if (mounted) {
         setState(() => _submitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1739,6 +1744,7 @@ class _SuccessMessage extends StatelessWidget {
 }
 
 class _FormBody extends StatelessWidget {
+  static const int _maxFieldLength = 200;
   final List<SmartFormFieldModel> fields;
   final Map<String, TextEditingController> ctrl;
   final Color accent;
@@ -1810,6 +1816,8 @@ class _FormBody extends StatelessWidget {
 
     InputDecoration decoration = InputDecoration(
       labelText: required ? '$label *' : label,
+      hintText: field.placeholder,
+      counterText: '',
       labelStyle: GoogleFonts.dmSans(
         fontSize: 13,
         color: textColor.withValues(alpha: 0.6),
@@ -1838,6 +1846,9 @@ class _FormBody extends StatelessWidget {
       return TextField(
         controller: controller,
         maxLines: 3,
+        keyboardType: TextInputType.multiline,
+        inputFormatters: _inputFormattersForField(field.fieldType),
+        maxLength: _maxFieldLength,
         style: GoogleFonts.dmSans(fontSize: 14, color: textColor),
         decoration: decoration,
       );
@@ -1845,16 +1856,63 @@ class _FormBody extends StatelessWidget {
     return TextField(
       controller: controller,
       maxLines: 1,
-      keyboardType: field.fieldType == SmartFormFieldType.phone
-          ? TextInputType.phone
-          : field.fieldType == SmartFormFieldType.email
-          ? TextInputType.emailAddress
-          : field.fieldType == SmartFormFieldType.number
-          ? const TextInputType.numberWithOptions(decimal: true)
-          : TextInputType.text,
+      keyboardType: _keyboardTypeForField(field.fieldType),
+      inputFormatters: _inputFormattersForField(field.fieldType),
+      maxLength: _maxFieldLength,
       style: GoogleFonts.dmSans(fontSize: 14, color: textColor),
       decoration: decoration,
     );
+  }
+
+  TextInputType _keyboardTypeForField(SmartFormFieldType fieldType) {
+    switch (fieldType) {
+      case SmartFormFieldType.phone:
+        return TextInputType.phone;
+      case SmartFormFieldType.email:
+        return TextInputType.emailAddress;
+      case SmartFormFieldType.number:
+        return TextInputType.number;
+      case SmartFormFieldType.textarea:
+        return TextInputType.multiline;
+      case SmartFormFieldType.text:
+        return TextInputType.text;
+    }
+  }
+
+  List<TextInputFormatter> _inputFormattersForField(
+    SmartFormFieldType fieldType,
+  ) {
+    switch (fieldType) {
+      case SmartFormFieldType.number:
+        return [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(_maxFieldLength),
+        ];
+      case SmartFormFieldType.phone:
+        return [
+          FilteringTextInputFormatter.allow(RegExp(r"[0-9+\-\s().]")),
+          LengthLimitingTextInputFormatter(_maxFieldLength),
+        ];
+      case SmartFormFieldType.email:
+        return [
+          FilteringTextInputFormatter.deny(RegExp(r"\s")),
+          LengthLimitingTextInputFormatter(_maxFieldLength),
+        ];
+      case SmartFormFieldType.textarea:
+        return [
+          FilteringTextInputFormatter.allow(
+            RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s.,;:!¡?¿()#@&/_\-\n]'),
+          ),
+          LengthLimitingTextInputFormatter(_maxFieldLength),
+        ];
+      case SmartFormFieldType.text:
+        return [
+          FilteringTextInputFormatter.allow(
+            RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s.,;:!¡?¿()#@&/_\-]'),
+          ),
+          LengthLimitingTextInputFormatter(_maxFieldLength),
+        ];
+    }
   }
 }
 

@@ -6,6 +6,13 @@ import '../../../features/card/models/digital_card_model.dart';
 import '../../../features/card/models/contact_item_model.dart';
 import '../../../features/card/models/social_link_model.dart';
 
+class _ResolvedLinkReference {
+  final String label;
+  final String platform;
+
+  const _ResolvedLinkReference({required this.label, required this.platform});
+}
+
 class AdminRepository {
   AdminRepository._();
 
@@ -62,14 +69,30 @@ class AdminRepository {
     final viewsSeriesByCard = <String, List<int>>{};
     final tapsSeriesByCard = <String, List<int>>{};
     final clicksSeriesByCard = <String, List<int>>{};
-    final linkStatsByCard = <String, List<TeamMemberLinkStat>>{};
+    final linkStatsByCard = <String, Map<String, TeamMemberLinkStat>>{};
 
     if (allCardIds.isNotEmpty) {
       final visitRows = await _db
           .from('visit_events')
-          .select('card_id, source, timestamp')
+          .select(
+            'card_id, source, timestamp, contact_item_id, social_link_id',
+          )
           .inFilter('card_id', allCardIds);
-      for (final row in (visitRows as List).cast<Map<String, dynamic>>()) {
+      final rawVisitRows = (visitRows as List).cast<Map<String, dynamic>>();
+      final currentLinksByRef = await _fetchCurrentLinksByRef(
+        cardIds: allCardIds,
+        contactItemIds: rawVisitRows
+            .map((row) => row['contact_item_id'] as String?)
+            .whereType<String>()
+            .toSet()
+            .toList(),
+        socialLinkIds: rawVisitRows
+            .map((row) => row['social_link_id'] as String?)
+            .whereType<String>()
+            .toSet()
+            .toList(),
+      );
+      for (final row in rawVisitRows) {
         final cardId = row['card_id'] as String?;
         if (cardId == null) continue;
         final source = row['source'] as String? ?? '';
@@ -85,6 +108,23 @@ class AdminRepository {
         }
         if (source == 'contact' || source == 'social') {
           totalClicksByCard[cardId] = (totalClicksByCard[cardId] ?? 0) + 1;
+          final resolved = _resolveLinkReference(
+            row: row,
+            source: source,
+            currentLinksByRef: currentLinksByRef,
+          );
+          final key = _eventLinkKey(
+            row: row,
+            source: source,
+            fallbackLabel: resolved.label,
+          );
+          final cardLinkStats = linkStatsByCard.putIfAbsent(cardId, () => {});
+          final current = cardLinkStats[key];
+          cardLinkStats[key] = TeamMemberLinkStat(
+            label: resolved.label,
+            platform: resolved.platform,
+            clicks: (current?.clicks ?? 0) + 1,
+          );
         }
         if (timestamp != null && !timestamp.isBefore(rangeStart)) {
           final bucket = timestamp.difference(rangeStart).inDays;
@@ -112,28 +152,6 @@ class AdminRepository {
             }
           }
         }
-      }
-
-      final linkRows = await _db
-          .from('link_stats')
-          .select('card_id, label, platform, clicks')
-          .inFilter('card_id', allCardIds)
-          .order('clicks', ascending: false);
-      for (final row in (linkRows as List).cast<Map<String, dynamic>>()) {
-        final cardId = row['card_id'] as String?;
-        if (cardId == null) continue;
-        linkStatsByCard
-            .putIfAbsent(cardId, () => [])
-            .add(
-              TeamMemberLinkStat(
-                label:
-                    row['label'] as String? ??
-                    row['platform'] as String? ??
-                    'Enlace',
-                platform: row['platform'] as String? ?? '',
-                clicks: (row['clicks'] as num?)?.toInt() ?? 0,
-              ),
-            );
       }
 
       final leadRows = await _db
@@ -183,7 +201,7 @@ class AdminRepository {
           if (i < cardClicks.length) clicksByDay[i] += cardClicks[i];
         }
         for (final stat
-            in linkStatsByCard[cardId] ?? const <TeamMemberLinkStat>[]) {
+            in (linkStatsByCard[cardId]?.values ?? const <TeamMemberLinkStat>[])) {
           final key = '${stat.platform}:${stat.label}';
           final current = aggregatedLinks[key];
           aggregatedLinks[key] = TeamMemberLinkStat(
@@ -259,6 +277,89 @@ class AdminRepository {
   static Future<void> updateUser(UserModel user) async {
     final payload = user.toJson()..remove('id');
     await _db.from('users').update(payload).eq('id', user.id);
+  }
+
+  static String _eventLinkKey({
+    required Map<String, dynamic> row,
+    required String source,
+    required String fallbackLabel,
+  }) {
+    final contactItemId = (row['contact_item_id'] as String?)?.trim();
+    if (contactItemId != null && contactItemId.isNotEmpty) {
+      return 'contact:$contactItemId';
+    }
+    final socialLinkId = (row['social_link_id'] as String?)?.trim();
+    if (socialLinkId != null && socialLinkId.isNotEmpty) {
+      return 'social:$socialLinkId';
+    }
+    return 'legacy:$source:$fallbackLabel';
+  }
+
+  static _ResolvedLinkReference _resolveLinkReference({
+    required Map<String, dynamic> row,
+    required String source,
+    required Map<String, _ResolvedLinkReference> currentLinksByRef,
+  }) {
+    final contactItemId = (row['contact_item_id'] as String?)?.trim();
+    if (contactItemId != null && contactItemId.isNotEmpty) {
+      final resolved = currentLinksByRef['contact:$contactItemId'];
+      if (resolved != null) return resolved;
+    }
+    final socialLinkId = (row['social_link_id'] as String?)?.trim();
+    if (socialLinkId != null && socialLinkId.isNotEmpty) {
+      final resolved = currentLinksByRef['social:$socialLinkId'];
+      if (resolved != null) return resolved;
+    }
+    return _ResolvedLinkReference(
+      label: source == 'contact' ? 'Contacto' : 'Red social',
+      platform: source,
+    );
+  }
+
+  static Future<Map<String, _ResolvedLinkReference>> _fetchCurrentLinksByRef({
+    required List<String> cardIds,
+    required List<String> contactItemIds,
+    required List<String> socialLinkIds,
+  }) async {
+    final resolved = <String, _ResolvedLinkReference>{};
+
+    if (cardIds.isEmpty) return resolved;
+
+    if (contactItemIds.isNotEmpty) {
+      final contactRows = await _db
+          .from('contact_items')
+          .select('id, card_id, type, label')
+          .inFilter('card_id', cardIds)
+          .inFilter('id', contactItemIds);
+      for (final row in (contactRows as List).cast<Map<String, dynamic>>()) {
+        final id = row['id'] as String?;
+        if (id == null) continue;
+        final item = ContactItemModel.fromJson(row);
+        resolved['contact:$id'] = _ResolvedLinkReference(
+          label: item.displayLabel,
+          platform: item.type.name,
+        );
+      }
+    }
+
+    if (socialLinkIds.isNotEmpty) {
+      final socialRows = await _db
+          .from('social_links')
+          .select('id, card_id, platform, custom_label')
+          .inFilter('card_id', cardIds)
+          .inFilter('id', socialLinkIds);
+      for (final row in (socialRows as List).cast<Map<String, dynamic>>()) {
+        final id = row['id'] as String?;
+        if (id == null) continue;
+        final link = SocialLinkModel.fromJson(row);
+        resolved['social:$id'] = _ResolvedLinkReference(
+          label: link.label,
+          platform: link.platform.name,
+        );
+      }
+    }
+
+    return resolved;
   }
 
   static Future<void> updateCard(DigitalCardModel card) async {

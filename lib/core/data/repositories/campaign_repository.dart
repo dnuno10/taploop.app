@@ -1,6 +1,7 @@
 import '../../services/supabase_service.dart';
 import '../../../features/analytics/models/visit_event_model.dart';
 import '../../../features/campaigns/models/campaign_model.dart';
+import 'analytics_repository.dart';
 
 class CampaignMemberAnalytics {
   final String userId;
@@ -315,12 +316,13 @@ class CampaignRepository {
           .cast<Map<String, dynamic>>()
           .map(VisitEventModel.fromJson)
           .toList();
-      final interactions = events.length;
+      final hydratedEvents = await AnalyticsRepository.hydrateEvents(events);
+      final interactions = hydratedEvents.length;
       final sourceSet = <String>{};
       var clicks = 0;
       var profileViews = 0;
       var forms = 0;
-      for (final event in events) {
+      for (final event in hydratedEvents) {
         final source = event.source?.trim();
         if (source != null && source.isNotEmpty) sourceSet.add(source);
         if (source == 'nfc' || source == 'qr') profileViews += 1;
@@ -353,7 +355,7 @@ class CampaignRepository {
         conversions: conversions,
         sources: sourceSet.toList()..sort(),
         cardId: cardId,
-        recentEvents: events.take(8).toList(),
+        recentEvents: hydratedEvents.take(8).toList(),
       );
     } catch (_) {
       return null;

@@ -8,6 +8,9 @@ class VisitEventModel {
   final String? country;
   final String? source; // nfc, qr, link, contact, social, form
   final String? label;
+  final String? contactItemId;
+  final String? socialLinkId;
+  final String? smartFormId;
 
   const VisitEventModel({
     required this.id,
@@ -19,6 +22,9 @@ class VisitEventModel {
     this.country,
     this.source,
     this.label,
+    this.contactItemId,
+    this.socialLinkId,
+    this.smartFormId,
   });
 
   factory VisitEventModel.fromJson(Map<String, dynamic> json) {
@@ -34,7 +40,40 @@ class VisitEventModel {
       city: json['city'] as String?,
       country: json['country'] as String?,
       source: json['source'] as String?,
-      label: json['label'] as String?,
+      label: null,
+      contactItemId: json['contact_item_id'] as String?,
+      socialLinkId: json['social_link_id'] as String?,
+      smartFormId: json['smart_form_id'] as String?,
+    );
+  }
+
+  VisitEventModel copyWith({
+    String? id,
+    String? cardId,
+    DateTime? timestamp,
+    String? ip,
+    String? device,
+    String? city,
+    String? country,
+    String? source,
+    String? label,
+    String? contactItemId,
+    String? socialLinkId,
+    String? smartFormId,
+  }) {
+    return VisitEventModel(
+      id: id ?? this.id,
+      cardId: cardId ?? this.cardId,
+      timestamp: timestamp ?? this.timestamp,
+      ip: ip ?? this.ip,
+      device: device ?? this.device,
+      city: city ?? this.city,
+      country: country ?? this.country,
+      source: source ?? this.source,
+      label: label ?? this.label,
+      contactItemId: contactItemId ?? this.contactItemId,
+      socialLinkId: socialLinkId ?? this.socialLinkId,
+      smartFormId: smartFormId ?? this.smartFormId,
     );
   }
 

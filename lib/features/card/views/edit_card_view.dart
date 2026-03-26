@@ -1409,7 +1409,10 @@ class _ProfileTabState extends State<_ProfileTab> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _AvatarPicker(card: widget.card, onPhotoChanged: widget.onPhotoChanged),
+              _AvatarPicker(
+                card: widget.card,
+                onPhotoChanged: widget.onPhotoChanged,
+              ),
               const SizedBox(height: 32),
               Divider(color: context.borderColor, height: 1),
               const SizedBox(height: 28),
@@ -2200,7 +2203,7 @@ class _DesignTab extends StatelessWidget {
                       }).toList(),
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // ── Color de Texto ───────────────────────────────
                     Text(
                       'Color de Texto',
@@ -2240,7 +2243,7 @@ class _DesignTab extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // ── Fondo de tarjeta ──────────────────────────────
                     Text(
                       'Fondo de tarjeta',
@@ -2348,7 +2351,7 @@ class _DesignTab extends StatelessWidget {
                       ),
                     ],
                     const SizedBox(height: 32),
-                    
+
                     // ── Color de Botones ─────────────────────────────
                     Text(
                       'Color de Botones',
@@ -3559,7 +3562,9 @@ class _FormulariosTabState extends State<_FormulariosTab> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialog) => AlertDialog(
           backgroundColor: ctx.bgCard,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           constraints: const BoxConstraints(maxWidth: 400),
           title: Text(
             'Nuevo formulario',
@@ -3576,9 +3581,10 @@ class _FormulariosTabState extends State<_FormulariosTab> {
                   maxLength: 100,
                   maxLines: 1,
                   onChanged: (value) => setDialog(() {}),
-                  decoration: _corporateInputDecoration(ctx, 'Nombre del formulario').copyWith(
-                    counterText: '',
-                  ),
+                  decoration: _corporateInputDecoration(
+                    ctx,
+                    'Nombre del formulario',
+                  ).copyWith(counterText: ''),
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -3685,6 +3691,9 @@ class _FormulariosTabState extends State<_FormulariosTab> {
                 ],
               ),
               const SizedBox(height: 18),
+              const SizedBox(height: 8),
+              const _FormsLeadNameNotice(compact: true),
+              const SizedBox(height: 18),
               if (_forms.isEmpty)
                 _EmptyState(
                   message: 'No hay formularios creados',
@@ -3694,10 +3703,7 @@ class _FormulariosTabState extends State<_FormulariosTab> {
                 ..._forms.map(
                   (f) => Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: _DbSmartFormCard(
-                      form: f,
-                      onChanged: _loadForms,
-                    ),
+                    child: _DbSmartFormCard(form: f, onChanged: _loadForms),
                   ),
                 ),
             ],
@@ -3712,10 +3718,7 @@ class _DbSmartFormCard extends StatefulWidget {
   final SmartFormModel form;
   final VoidCallback onChanged;
 
-  const _DbSmartFormCard({
-    required this.form,
-    required this.onChanged,
-  });
+  const _DbSmartFormCard({required this.form, required this.onChanged});
 
   @override
   State<_DbSmartFormCard> createState() => _DbSmartFormCardState();
@@ -3736,7 +3739,9 @@ class _DbSmartFormCardState extends State<_DbSmartFormCard> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialog) => AlertDialog(
           backgroundColor: ctx.bgCard,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           constraints: const BoxConstraints(maxWidth: 400),
           title: const Text('Editar formulario'),
           content: SizedBox(
@@ -3750,9 +3755,10 @@ class _DbSmartFormCardState extends State<_DbSmartFormCard> {
                   maxLength: 100,
                   maxLines: 1,
                   onChanged: (value) => setDialog(() {}),
-                  decoration: _corporateInputDecoration(ctx, 'Nombre').copyWith(
-                    counterText: '',
-                  ),
+                  decoration: _corporateInputDecoration(
+                    ctx,
+                    'Nombre',
+                  ).copyWith(counterText: ''),
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -3837,7 +3843,7 @@ class _DbSmartFormCardState extends State<_DbSmartFormCard> {
     SmartFormFieldType type = SmartFormFieldType.text;
     bool required = false;
     String labelError = '';
-    
+
     final created = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -3873,10 +3879,7 @@ class _DbSmartFormCardState extends State<_DbSmartFormCard> {
                 const SizedBox(height: 8),
                 Text(
                   labelError,
-                  style: GoogleFonts.dmSans(
-                    fontSize: 12,
-                    color: Colors.red,
-                  ),
+                  style: GoogleFonts.dmSans(fontSize: 12, color: Colors.red),
                 ),
               ],
               const SizedBox(height: 10),
@@ -3917,7 +3920,7 @@ class _DbSmartFormCardState extends State<_DbSmartFormCard> {
     );
 
     if (created != true || labelCtrl.text.trim().isEmpty) return;
-    
+
     // Final validation before saving
     final validation = FieldValidators.validateMaxLength(
       labelCtrl.text,
@@ -3932,7 +3935,7 @@ class _DbSmartFormCardState extends State<_DbSmartFormCard> {
       );
       return;
     }
-    
+
     await CardRepository.addSmartFormField(
       widget.form.id,
       SmartFormFieldModel(
@@ -3951,7 +3954,7 @@ class _DbSmartFormCardState extends State<_DbSmartFormCard> {
     SmartFormFieldType type = field.fieldType;
     bool required = field.isRequired;
     String labelError = '';
-    
+
     final updated = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -3987,10 +3990,7 @@ class _DbSmartFormCardState extends State<_DbSmartFormCard> {
                 const SizedBox(height: 8),
                 Text(
                   labelError,
-                  style: GoogleFonts.dmSans(
-                    fontSize: 12,
-                    color: Colors.red,
-                  ),
+                  style: GoogleFonts.dmSans(fontSize: 12, color: Colors.red),
                 ),
               ],
               const SizedBox(height: 10),
@@ -4030,7 +4030,7 @@ class _DbSmartFormCardState extends State<_DbSmartFormCard> {
       ),
     );
     if (updated != true || labelCtrl.text.trim().isEmpty) return;
-    
+
     // Final validation before saving
     final validation = FieldValidators.validateMaxLength(
       labelCtrl.text,
@@ -4045,7 +4045,7 @@ class _DbSmartFormCardState extends State<_DbSmartFormCard> {
       );
       return;
     }
-    
+
     await CardRepository.updateSmartFormField(
       field.copyWith(
         label: labelCtrl.text.trim(),
@@ -4077,6 +4077,13 @@ class _DbSmartFormCardState extends State<_DbSmartFormCard> {
 
   @override
   Widget build(BuildContext context) {
+    final referenceField = widget.form.fields
+        .cast<SmartFormFieldModel?>()
+        .firstWhere(
+          (field) => field?.fieldType == SmartFormFieldType.text,
+          orElse: () => null,
+        );
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -4149,6 +4156,7 @@ class _DbSmartFormCardState extends State<_DbSmartFormCard> {
                 onReorder: _reorderFields,
                 itemBuilder: (_, i) {
                   final field = widget.form.fields[i];
+                  final isReferenceNameField = referenceField?.id == field.id;
                   return ListTile(
                     key: ValueKey(field.id),
                     dense: true,
@@ -4162,7 +4170,11 @@ class _DbSmartFormCardState extends State<_DbSmartFormCard> {
                     ),
                     title: Text(field.label),
                     subtitle: Text(
-                      '${field.fieldType.label}${field.isRequired ? ' · Obligatorio' : ''}',
+                      [
+                        field.fieldType.label,
+                        if (field.isRequired) 'Obligatorio',
+                        if (isReferenceNameField) 'Nombre de referencia',
+                      ].join(' · '),
                       style: GoogleFonts.dmSans(fontSize: 12),
                     ),
                     trailing: Row(
@@ -4404,6 +4416,56 @@ class _EmptyState extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _FormsLeadNameNotice extends StatelessWidget {
+  final bool compact;
+
+  const _FormsLeadNameNotice({this.compact = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 12 : 14,
+        vertical: compact ? 10 : 12,
+      ),
+      decoration: BoxDecoration(
+        color: context.isDark
+            ? AppColors.primary.withValues(alpha: 0.08)
+            : AppColors.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: context.isDark
+              ? AppColors.primary.withValues(alpha: 0.18)
+              : AppColors.primary.withValues(alpha: 0.12),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            size: compact ? 16 : 18,
+            color: AppColors.primary,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'El primer campo de texto del formulario será utilizado como el nombre de referencia del contacto.',
+              style: GoogleFonts.dmSans(
+                fontSize: compact ? 12 : 13,
+                fontWeight: FontWeight.w500,
+                color: context.textSecondary,
+                height: 1.45,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

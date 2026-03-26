@@ -76,8 +76,15 @@ class MockData {
     totalTaps: 432,
     totalQrScans: 317,
     totalClicks: 2_894,
+    totalInteractions: 4_517,
     visitsThisWeek: 94,
     visitsLastWeek: 76,
+    tapsThisPeriod: 34,
+    tapsLastPeriod: 28,
+    clicksThisPeriod: 121,
+    clicksLastPeriod: 97,
+    interactionsThisPeriod: 249,
+    interactionsLastPeriod: 201,
     visitsByDay: [12, 18, 9, 24, 31, 15, 28],
     linkStats: [
       const LinkStatModel(
