@@ -300,14 +300,11 @@ class _AdminViewState extends State<AdminView> {
   ) async {
     final styles = [
       CardThemeStyle.white,
-      CardThemeStyle.frosted,
-      CardThemeStyle.dark,
-      CardThemeStyle.custom,
+      CardThemeStyle.black,
     ];
     final colors = [
       const Color(0xFF0D0D0D),
       const Color(0xFF1F2937),
-      const Color(0xFF374151),
       const Color(0xFF6B7280),
     ];
     return Future.wait(
@@ -1927,18 +1924,12 @@ class _EditMemberDialogState extends State<_EditMemberDialog>
   Widget _buildDisenoTab() {
     final stylePreviews = [
       (CardThemeStyle.white, 'Blanco'),
-      (CardThemeStyle.dark, 'Oscuro'),
-      (CardThemeStyle.gradient, 'Degradado'),
-      (CardThemeStyle.neon, 'Neón'),
-      (CardThemeStyle.premium, 'Premium'),
-      (CardThemeStyle.frosted, 'Frosted'),
-      (CardThemeStyle.retro, 'Retro'),
+      (CardThemeStyle.black, 'Negro'),
     ];
     final layoutOptions = [
       (CardLayoutStyle.centered, 'Centrado'),
       (CardLayoutStyle.leftAligned, 'Izquierda'),
       (CardLayoutStyle.banner, 'Banner'),
-      (CardLayoutStyle.minimal, 'Minimalista'),
     ];
     return _adminStepPageShell(
       title: 'Diseño',

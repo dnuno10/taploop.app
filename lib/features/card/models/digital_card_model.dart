@@ -5,37 +5,19 @@ import 'smart_form_model.dart';
 
 enum CardThemeStyle {
   white,
-  dark,
-  gradient,
-  frosted,
-  neon,
-  premium,
-  retro,
-  custom,
+  black,
 }
 
 CardThemeStyle _themeStyleFromString(String s) {
   switch (s) {
-    case 'dark':
-      return CardThemeStyle.dark;
-    case 'gradient':
-      return CardThemeStyle.gradient;
-    case 'frosted':
-      return CardThemeStyle.frosted;
-    case 'neon':
-      return CardThemeStyle.neon;
-    case 'premium':
-      return CardThemeStyle.premium;
-    case 'retro':
-      return CardThemeStyle.retro;
-    case 'custom':
-      return CardThemeStyle.custom;
+    case 'black':
+      return CardThemeStyle.black;
     default:
       return CardThemeStyle.white;
   }
 }
 
-enum CardLayoutStyle { centered, leftAligned, banner, minimal }
+enum CardLayoutStyle { centered, leftAligned, banner }
 
 CardLayoutStyle _layoutStyleFromString(String s) {
   switch (s) {
@@ -43,8 +25,6 @@ CardLayoutStyle _layoutStyleFromString(String s) {
       return CardLayoutStyle.leftAligned;
     case 'banner':
       return CardLayoutStyle.banner;
-    case 'minimal':
-      return CardLayoutStyle.minimal;
     default:
       return CardLayoutStyle.centered;
   }
@@ -82,11 +62,12 @@ class DigitalCardModel {
   final Color? backgroundColorStart;
   final Color? backgroundColorEnd;
   final CardLayoutStyle layoutStyle;
-  final bool textColorIsDark;
-  // Background
+  // Design
   final CardBgStyle bgStyle;
   final Color? bgColor;
   final Color? bgColorEnd;
+  
+  bool get textColorIsDark => themeStyle == CardThemeStyle.black;
   // Forms & Calendar
   final List<String> enabledForms;
   final bool calendarEnabled;
@@ -120,10 +101,9 @@ class DigitalCardModel {
     this.backgroundColorStart,
     this.backgroundColorEnd,
     this.layoutStyle = CardLayoutStyle.centered,
-    this.textColorIsDark = false,
     this.bgStyle = CardBgStyle.plain,
-    this.bgColor,
-    this.bgColorEnd,
+    this.bgColor = Colors.white,
+    this.bgColorEnd = Colors.white,
     this.enabledForms = const [],
     this.calendarEnabled = false,
     this.calendarUrl,
@@ -241,7 +221,6 @@ class DigitalCardModel {
     Color? backgroundColorStart,
     Color? backgroundColorEnd,
     CardLayoutStyle? layoutStyle,
-    bool? textColorIsDark,
     CardBgStyle? bgStyle,
     Color? bgColor,
     Color? bgColorEnd,
@@ -273,7 +252,6 @@ class DigitalCardModel {
       backgroundColorStart: backgroundColorStart ?? this.backgroundColorStart,
       backgroundColorEnd: backgroundColorEnd ?? this.backgroundColorEnd,
       layoutStyle: layoutStyle ?? this.layoutStyle,
-      textColorIsDark: textColorIsDark ?? this.textColorIsDark,
       bgStyle: bgStyle ?? this.bgStyle,
       bgColor: bgColor ?? this.bgColor,
       bgColorEnd: bgColorEnd ?? this.bgColorEnd,

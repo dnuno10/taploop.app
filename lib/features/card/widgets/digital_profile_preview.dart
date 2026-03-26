@@ -443,8 +443,6 @@ class _ScreenContent extends StatelessWidget {
     switch (card.layoutStyle) {
       case CardLayoutStyle.banner:
         return _buildBannerHeader();
-      case CardLayoutStyle.minimal:
-        return _buildMinimalHeader();
       default:
         return _buildClassicHeader(headerPadding, isCentered);
     }
@@ -680,84 +678,6 @@ class _ScreenContent extends StatelessWidget {
                   ),
                 ],
               ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMinimalHeader() {
-    final avatarSize = 46.0;
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(
-        16 * scale,
-        18 * scale,
-        16 * scale,
-        14 * scale,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          if (card.companyLogoUrl != null && card.companyLogoUrl!.isNotEmpty)
-            Container(
-              height: 28 * scale,
-              constraints: BoxConstraints(maxWidth: 88 * scale),
-              padding: EdgeInsets.symmetric(
-                horizontal: 6 * scale,
-                vertical: 3 * scale,
-              ),
-              child: Image.network(
-                card.companyLogoUrl!,
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-              ),
-            ),
-          if (card.companyLogoUrl != null && card.companyLogoUrl!.isNotEmpty)
-            SizedBox(height: 8 * scale),
-          Container(
-            width: avatarSize * scale,
-            height: avatarSize * scale,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.transparent,
-              border: Border.all(
-                color: _textColor.withValues(alpha: 0.25),
-                width: 1.5,
-              ),
-            ),
-            child: _buildAvatar(16 * scale),
-          ),
-          SizedBox(height: 8 * scale),
-          Text(
-            card.name.isEmpty ? 'Tu nombre' : card.name,
-            style: GoogleFonts.outfit(
-              fontSize: 15 * scale,
-              fontWeight: FontWeight.w800,
-              color: _textColor,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 2 * scale),
-          Text(
-            card.jobTitle.isEmpty ? 'Tu cargo' : card.jobTitle,
-            style: GoogleFonts.dmSans(
-              fontSize: 10 * scale,
-              color: _subColor,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          if (card.company.isNotEmpty) ...[
-            SizedBox(height: 2 * scale),
-            Text(
-              card.company,
-              style: GoogleFonts.dmSans(
-                fontSize: 9 * scale,
-                fontWeight: FontWeight.w600,
-                color: _accentColor,
-              ),
-              textAlign: TextAlign.center,
             ),
           ],
         ],

@@ -2231,14 +2231,14 @@ class _DesignTab extends StatelessWidget {
                           isDark: false,
                           selected: !card.textColorIsDark,
                           onTap: () =>
-                              onChanged(card.copyWith(textColorIsDark: false)),
+                              onChanged(card.copyWith(themeStyle: CardThemeStyle.white)),
                         ),
                         _TextColorButton(
                           label: 'Negro',
                           isDark: true,
                           selected: card.textColorIsDark,
                           onTap: () =>
-                              onChanged(card.copyWith(textColorIsDark: true)),
+                              onChanged(card.copyWith(themeStyle: CardThemeStyle.black)),
                         ),
                       ],
                     ),
@@ -2395,14 +2395,7 @@ class _DesignTab extends StatelessWidget {
                     const SizedBox(height: 14),
                     _CustomColorPanel(
                       color: card.primaryColor,
-                      onChanged: (c) => onChanged(
-                        card.copyWith(
-                          primaryColor: c,
-                          themeStyle: card.themeStyle == CardThemeStyle.custom
-                              ? card.themeStyle
-                              : CardThemeStyle.custom,
-                        ),
-                      ),
+                      onChanged: (c) => onChanged(card.copyWith(primaryColor: c)),
                     ),
                     const SizedBox(height: 48),
                   ],
@@ -2518,19 +2511,16 @@ class _LayoutChip extends StatelessWidget {
       CardLayoutStyle.centered => Icons.person_outline,
       CardLayoutStyle.leftAligned => Icons.format_align_left,
       CardLayoutStyle.banner => Icons.view_headline,
-      CardLayoutStyle.minimal => Icons.radio_button_unchecked,
     };
     final label = switch (layout) {
       CardLayoutStyle.centered => 'Clásico',
       CardLayoutStyle.leftAligned => 'Izquierda',
       CardLayoutStyle.banner => 'Banner',
-      CardLayoutStyle.minimal => 'Minimalista',
     };
     final desc = switch (layout) {
       CardLayoutStyle.centered => 'Avatar arriba centrado',
       CardLayoutStyle.leftAligned => 'Contenido a la izquierda',
       CardLayoutStyle.banner => 'Avatar y nombre en fila',
-      CardLayoutStyle.minimal => 'Sin banda de encabezado',
     };
     final fgPrimary = selected ? AppColors.primary : context.textPrimary;
     final fgSub = context.textSecondary;

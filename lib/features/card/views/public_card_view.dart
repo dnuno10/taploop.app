@@ -218,47 +218,12 @@ class _PublicCardViewState extends State<PublicCardView> {
 
 // ─── Theme helpers (mirrors DigitalProfilePreview logic exactly) ──────────────
 
-Color _cardAccent(DigitalCardModel card) {
-  switch (card.themeStyle) {
-    case CardThemeStyle.neon:
-      return const Color(0xFF00FFB2);
-    case CardThemeStyle.retro:
-      return const Color(0xFFE8803A);
-    case CardThemeStyle.premium:
-      return const Color(0xFFD4AF37);
-    default:
-      return card.primaryColor;
-  }
-}
+Color _cardAccent(DigitalCardModel card) => card.primaryColor;
 
-Color _cardBgBase(DigitalCardModel card) {
-  switch (card.themeStyle) {
-    case CardThemeStyle.dark:
-    case CardThemeStyle.neon:
-    case CardThemeStyle.premium:
-      return const Color(0xFF0D0D0D);
-    case CardThemeStyle.gradient:
-      return card.backgroundColorStart ?? const Color(0xFF6C4FE8);
-    case CardThemeStyle.frosted:
-      return const Color(0xFFF4F4F6);
-    case CardThemeStyle.retro:
-      return const Color(0xFFFFF8F0);
-    default:
-      return Colors.white;
-  }
-}
+Color _cardBgBase(DigitalCardModel card) => card.bgColor ?? Colors.white;
 
-Color _cardTextColor(DigitalCardModel card) {
-  switch (card.themeStyle) {
-    case CardThemeStyle.dark:
-    case CardThemeStyle.neon:
-    case CardThemeStyle.premium:
-    case CardThemeStyle.gradient:
-      return Colors.white;
-    default:
-      return const Color(0xFF0D0D0D);
-  }
-}
+Color _cardTextColor(DigitalCardModel card) =>
+    card.textColorIsDark ? const Color(0xFF0D0D0D) : Colors.white;
 
 /// Mirrors _ScreenContent._buildBgDecoration from digital_profile_preview.dart
 BoxDecoration _buildPageDecoration(DigitalCardModel card) {
@@ -383,8 +348,6 @@ Widget _buildCardHeader(DigitalCardModel card) {
   switch (card.layoutStyle) {
     case CardLayoutStyle.banner:
       return _BannerHeader(card: card);
-    case CardLayoutStyle.minimal:
-      return _MinimalHeader(card: card);
     default:
       return _HeroHeader(card: card);
   }
@@ -517,6 +480,18 @@ class _HeroHeader extends StatelessWidget {
                     ? CrossAxisAlignment.center
                     : CrossAxisAlignment.start,
                 children: [
+                  // Logo de empresa (primero)
+                  if (card.companyLogoUrl != null &&
+                      card.companyLogoUrl!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 24),
+                      child: _PublicCompanyLogo(
+                        imageUrl: card.companyLogoUrl!,
+                        maxWidth: 160,
+                        height: 56,
+                      ),
+                    ),
+                  // Avatar del usuario
                   Container(
                     width: 104,
                     height: 104,
@@ -546,6 +521,7 @@ class _HeroHeader extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
+                  // Nombre
                   Text(
                     card.name,
                     textAlign: isCentered ? TextAlign.center : TextAlign.left,
@@ -556,11 +532,13 @@ class _HeroHeader extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
+                  // Puesto
                   Text(
                     card.jobTitle,
                     textAlign: isCentered ? TextAlign.center : TextAlign.left,
                     style: GoogleFonts.dmSans(fontSize: 15, color: subCol),
                   ),
+                  // Compañía
                   if (card.company.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(
@@ -597,20 +575,6 @@ class _HeroHeader extends StatelessWidget {
                       ),
                     ),
                   ],
-                  const SizedBox(height: 20),
-                  if (card.companyLogoUrl != null &&
-                      card.companyLogoUrl!.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      child: _PublicCompanyLogo(
-                        imageUrl: card.companyLogoUrl!,
-                        maxWidth: 160,
-                        height: 56,
-                      ),
-                    ),
                 ],
               ),
             ),
@@ -678,226 +642,109 @@ class _BannerHeader extends StatelessWidget {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 480),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 88,
-                    height: 88,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: accent.withValues(alpha: 0.2),
-                      border: Border.all(color: accent, width: 2.5),
-                    ),
-                    child: ClipOval(
-                      child: card.profilePhotoUrl != null
-                          ? Image.network(
-                              card.profilePhotoUrl!,
-                              fit: BoxFit.cover,
-                              width: 88,
-                              height: 88,
-                            )
-                          : Center(
-                              child: Text(
-                                _initials(card.name),
-                                style: GoogleFonts.outfit(
-                                  fontSize: 30,
-                                  fontWeight: FontWeight.w800,
-                                  color: accent,
-                                ),
-                              ),
-                            ),
-                    ),
-                  ),
-                  const SizedBox(width: 20),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          card.name,
-                          style: GoogleFonts.outfit(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            color: textCol,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          card.jobTitle,
-                          style: GoogleFonts.dmSans(
-                            fontSize: 14,
-                            color: subCol,
-                          ),
-                        ),
-                        if (card.company.isNotEmpty) ...[
-                          Text(
-                            card.company,
-                            style: GoogleFonts.dmSans(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: subCol,
-                            ),
-                          ),
-                        ],
-                        if (card.bio != null && card.bio!.isNotEmpty) ...[
-                          const SizedBox(height: 10),
-                          Text(
-                            card.bio!,
-                            style: GoogleFonts.dmSans(
-                              fontSize: 13,
-                              color: subCol,
-                              height: 1.4,
-                            ),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                        const SizedBox(height: 10),
-                        if (card.companyLogoUrl != null &&
-                            card.companyLogoUrl!.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            child: _PublicCompanyLogo(
-                              imageUrl: card.companyLogoUrl!,
-                              maxWidth: 130,
-                              height: 48,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Minimal Header ───────────────────────────────────────────────────────────
-
-class _MinimalHeader extends StatelessWidget {
-  final DigitalCardModel card;
-  const _MinimalHeader({required this.card});
-
-  String _initials(String name) {
-    final parts = name.trim().split(' ');
-    if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    return name.isNotEmpty ? name[0].toUpperCase() : '?';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = _cardAccent(card);
-    final textCol = _cardTextColor(card);
-    final subCol = textCol.withValues(alpha: 0.65);
-
-    return Container(
-      width: double.infinity,
-      color: Colors.transparent,
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 56, 24, 28),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Container(
-                    width: 96,
-                    height: 96,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.transparent,
-                      border: Border.all(
-                        color: textCol.withValues(alpha: 0.25),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: ClipOval(
-                      child: card.profilePhotoUrl != null
-                          ? Image.network(
-                              card.profilePhotoUrl!,
-                              fit: BoxFit.cover,
-                              width: 96,
-                              height: 96,
-                            )
-                          : Center(
-                              child: Text(
-                                _initials(card.name),
-                                style: GoogleFonts.outfit(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.w700,
-                                  color: accent,
-                                ),
-                              ),
-                            ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    card.name,
-                    style: GoogleFonts.outfit(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800,
-                      color: textCol,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    card.jobTitle,
-                    style: GoogleFonts.dmSans(fontSize: 15, color: subCol),
-                    textAlign: TextAlign.center,
-                  ),
-                  if (card.company.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      card.company,
-                      style: GoogleFonts.dmSans(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: accent,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                  if (card.bio != null && card.bio!.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      card.bio!,
-                      style: GoogleFonts.dmSans(
-                        fontSize: 14,
-                        color: subCol,
-                        height: 1.5,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                  const SizedBox(height: 20),
+                  // Logo de empresa (primero en su propio column)
                   if (card.companyLogoUrl != null &&
                       card.companyLogoUrl!.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
+                      padding: const EdgeInsets.only(bottom: 24),
                       child: _PublicCompanyLogo(
                         imageUrl: card.companyLogoUrl!,
                         maxWidth: 140,
-                        height: 52,
+                        height: 56,
                       ),
                     ),
+                  // Row con avatar (izquierda) y datos (derecha)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Avatar del usuario (izquierda)
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: accent.withValues(alpha: 0.2),
+                          border: Border.all(color: accent, width: 2.5),
+                        ),
+                        child: ClipOval(
+                          child: card.profilePhotoUrl != null
+                              ? Image.network(
+                                  card.profilePhotoUrl!,
+                                  fit: BoxFit.cover,
+                                  width: 80,
+                                  height: 80,
+                                )
+                              : Center(
+                                  child: Text(
+                                    _initials(card.name),
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.w800,
+                                      color: accent,
+                                    ),
+                                  ),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      // Datos (derecha)
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Nombre
+                            Text(
+                              card.name,
+                              style: GoogleFonts.outfit(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                                color: textCol,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            // Puesto
+                            Text(
+                              card.jobTitle,
+                              style: GoogleFonts.dmSans(
+                                fontSize: 13,
+                                color: subCol,
+                              ),
+                            ),
+                            // Compañía
+                            if (card.company.isNotEmpty) ...[
+                              Text(
+                                card.company,
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: subCol,
+                                ),
+                              ),
+                            ],
+                            // Biografía
+                            if (card.bio != null && card.bio!.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                card.bio!,
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 12,
+                                  color: subCol,
+                                  height: 1.4,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),

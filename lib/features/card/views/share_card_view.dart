@@ -383,7 +383,6 @@ class _CardHeroSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 28),
-          Center(child: _MinimalCardPreview(card: card, width: 280)),
           const SizedBox(height: 24),
           Row(
             children: [
@@ -456,89 +455,6 @@ class _CardHeroSection extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ─── Minimal Card Preview ────────────────────────────────────────────────────
-
-class _MinimalCardPreview extends StatelessWidget {
-  final DigitalCardModel? card;
-  final double width;
-  const _MinimalCardPreview({required this.card, this.width = 280});
-
-  double get height => width * (54 / 85.6); // CR80 ratio
-
-  @override
-  Widget build(BuildContext context) {
-    final logoUrl = card?.companyLogoUrl;
-    final companyName = card?.company ?? '';
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: context.bgCard,
-        borderRadius: BorderRadius.circular(width * 0.04),
-        border: Border.all(color: context.borderColor),
-      ),
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: width * 0.07,
-          vertical: height * 0.12,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Top row: logo + NFC
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                if (logoUrl != null && logoUrl.isNotEmpty)
-                  RemoteBrandLogo(
-                    imageUrl: logoUrl,
-                    height: height * 0.30,
-                    fit: BoxFit.contain,
-                  )
-                else
-                  Text(
-                    companyName.isNotEmpty ? companyName : 'TapLoop',
-                    style: GoogleFonts.outfit(
-                      fontSize: height * 0.15,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                Icon(Icons.wifi, size: height * 0.20, color: context.textMuted),
-              ],
-            ),
-            const Spacer(),
-            // Name
-            Text(
-              card?.name ?? '',
-              style: GoogleFonts.outfit(
-                fontSize: height * 0.16,
-                fontWeight: FontWeight.w700,
-                color: context.textPrimary,
-                height: 1.1,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            SizedBox(height: height * 0.04),
-            // Job title
-            Text(
-              card?.jobTitle ?? '',
-              style: GoogleFonts.dmSans(
-                fontSize: height * 0.11,
-                color: context.textSecondary,
-                height: 1.2,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
       ),
     );
   }
