@@ -312,6 +312,14 @@ class _EditCardViewState extends State<EditCardView>
   }
 
   void _showAddContact() {
+    if (_card.contactItems.length >= 8) {
+      TapLoopToast.show(
+        context,
+        'Máximo 8 contactos permitidos.',
+        TapLoopToastType.error,
+      );
+      return;
+    }
     void onAdd(ContactItemModel item) => _persistNewContact(item);
     if (Responsive.isDesktop(context)) {
       showDialog(
@@ -422,6 +430,14 @@ class _EditCardViewState extends State<EditCardView>
   }
 
   void _showAddSocial() {
+    if (_card.socialLinks.length >= 8) {
+      TapLoopToast.show(
+        context,
+        'Máximo 8 redes sociales permitidas.',
+        TapLoopToastType.error,
+      );
+      return;
+    }
     void onAdd(SocialLinkModel link) => _persistNewSocial(link);
     if (Responsive.isDesktop(context)) {
       showDialog(
@@ -906,6 +922,9 @@ class _EditCardViewState extends State<EditCardView>
       onCompletionChanged: (hasCompletedForm) {
         if (_hasCompletedForm == hasCompletedForm) return;
         setState(() => _hasCompletedForm = hasCompletedForm);
+      },
+      onFormsChanged: (forms) {
+        setState(() => _card = _card.copyWith(smartForms: forms));
       },
     ),
     _CalendarioTab(
@@ -3253,9 +3272,11 @@ extension _SmartFormFieldTypeUi on SmartFormFieldType {
 class _FormulariosTab extends StatefulWidget {
   final String cardId;
   final ValueChanged<bool> onCompletionChanged;
+  final ValueChanged<List<SmartFormModel>> onFormsChanged;
   const _FormulariosTab({
     required this.cardId,
     required this.onCompletionChanged,
+    required this.onFormsChanged,
   });
 
   @override
@@ -3285,9 +3306,11 @@ class _FormulariosTabState extends State<_FormulariosTab> {
         });
       }
       widget.onCompletionChanged(hasCompletedForm);
+      widget.onFormsChanged(forms);
     } catch (_) {
       if (mounted) setState(() => _loading = false);
       widget.onCompletionChanged(false);
+      widget.onFormsChanged([]);
     }
   }
 
@@ -3861,50 +3884,7 @@ class _CalendarioTabState extends State<_CalendarioTab> {
                   ),
                 ],
               ),
-              const SizedBox(height: 28),
-              // ── Preview button ───────────────────────────────────────
-              AnimatedOpacity(
-                opacity: _enabled ? 1.0 : 0.35,
-                duration: const Duration(milliseconds: 200),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 14,
-                    horizontal: 20,
-                  ),
-                  decoration: BoxDecoration(
-                    color: context.textPrimary,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.calendar_today_rounded,
-                        size: 16,
-                        color: context.isDark ? Colors.black : Colors.white,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Agendar reunión',
-                        style: GoogleFonts.dmSans(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: context.isDark ? Colors.black : Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Así se verá en tu tarjeta',
-                style: GoogleFonts.dmSans(
-                  fontSize: 11,
-                  color: context.textMuted,
-                ),
-              ),
-              const SizedBox(height: 28),
+
               Divider(color: context.borderColor, height: 1),
               const SizedBox(height: 28),
               // ── Provider selection ───────────────────────────────────

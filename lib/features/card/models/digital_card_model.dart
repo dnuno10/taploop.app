@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'social_link_model.dart';
 import 'contact_item_model.dart';
+import 'smart_form_model.dart';
 
 enum CardThemeStyle {
   white,
@@ -95,6 +96,8 @@ class DigitalCardModel {
   final List<ContactItemModel> contactItems;
   // Social
   final List<SocialLinkModel> socialLinks;
+  // SmartForms (en memoria, no persisten en BD directamente en este model)
+  final List<SmartFormModel> smartForms;
   // Meta
   final String publicSlug;
   final bool isActive;
@@ -126,6 +129,7 @@ class DigitalCardModel {
     this.calendarUrl,
     required this.contactItems,
     required this.socialLinks,
+    this.smartForms = const [],
     required this.publicSlug,
     this.isActive = true,
     this.deactivatedAt,
@@ -138,6 +142,7 @@ class DigitalCardModel {
     Map<String, dynamic> json, {
     List<ContactItemModel> contactItems = const [],
     List<SocialLinkModel> socialLinks = const [],
+    List<SmartFormModel> smartForms = const [],
   }) {
     final primaryColorVal = (json['primary_color'] as num?)?.toInt();
     final bgColorVal = (json['bg_color'] as num?)?.toInt();
@@ -188,6 +193,7 @@ class DigitalCardModel {
       calendarUrl: json['calendar_url'] as String?,
       contactItems: contactItems,
       socialLinks: socialLinks,
+      smartForms: smartForms,
     );
   }
 
@@ -243,6 +249,7 @@ class DigitalCardModel {
     String? calendarUrl,
     List<ContactItemModel>? contactItems,
     List<SocialLinkModel>? socialLinks,
+    List<SmartFormModel>? smartForms,
     String? publicSlug,
     bool? isActive,
     DateTime? deactivatedAt,
@@ -273,6 +280,7 @@ class DigitalCardModel {
       calendarUrl: calendarUrl ?? this.calendarUrl,
       contactItems: contactItems ?? this.contactItems,
       socialLinks: socialLinks ?? this.socialLinks,
+      smartForms: smartForms ?? this.smartForms,
       publicSlug: publicSlug ?? this.publicSlug,
       isActive: isActive ?? this.isActive,
       deactivatedAt: deactivatedAt ?? this.deactivatedAt,

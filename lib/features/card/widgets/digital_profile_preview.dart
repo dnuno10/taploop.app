@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/widgets/platform_icon.dart';
 import '../models/digital_card_model.dart';
-import '../models/contact_item_model.dart';
-import '../models/social_link_model.dart';
 
 /// Mini phone-frame preview of the digital profile card (centralized links).
 class DigitalProfilePreview extends StatelessWidget {
@@ -127,15 +126,11 @@ class _ScreenContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sortedContacts = card.contactItems.where((c) => c.isVisible).toList();
-    sortedContacts.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
-    final visibleContacts = sortedContacts
-        .take(card.layoutStyle == CardLayoutStyle.compact ? 2 : 3)
-        .toList();
+    final visibleContacts = card.contactItems.where((c) => c.isVisible).toList()
+      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
 
-    final sortedSocials = card.socialLinks.where((s) => s.isVisible).toList();
-    sortedSocials.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
-    final visibleSocials = sortedSocials.take(4).toList();
+    final visibleSocials = card.socialLinks.where((s) => s.isVisible).toList()
+      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
     final isCentered = card.layoutStyle == CardLayoutStyle.centered;
     final isCompact = card.layoutStyle == CardLayoutStyle.compact;
     final headerPadding = isCompact
@@ -144,7 +139,7 @@ class _ScreenContent extends StatelessWidget {
 
     final bgBase = card.bgColor ?? _bgColor;
     final scrollContent = SingleChildScrollView(
-      physics: const NeverScrollableScrollPhysics(),
+      physics: const ClampingScrollPhysics(),
       child: Column(
         children: [
           _buildHeaderBand(headerPadding, isCentered, isCompact),
@@ -190,10 +185,9 @@ class _ScreenContent extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          Icon(
-                            _contactIcon(c.type),
-                            size: 14 * scale,
-                            color: _accentColor,
+                          PlatformIcon.contact(
+                            contactType: c.type,
+                            size: 10 * scale,
                           ),
                           SizedBox(width: 8 * scale),
                           Expanded(
@@ -282,10 +276,9 @@ class _ScreenContent extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          Icon(
-                            _socialIcon(s.platform),
-                            size: 14 * scale,
-                            color: _accentColor,
+                          PlatformIcon.social(
+                            platform: s.platform,
+                            size: 10 * scale,
                           ),
                           SizedBox(width: 8 * scale),
                           Expanded(
@@ -364,6 +357,94 @@ class _ScreenContent extends StatelessWidget {
                 ),
               ),
             ),
+          if (card.smartForms.where((f) => f.isActive).isNotEmpty) ...[ 
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                12 * scale,
+                10 * scale,
+                12 * scale,
+                4 * scale,
+              ),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'FORMULARIOS',
+                  style: GoogleFonts.outfit(
+                    fontSize: 8 * scale,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                    color: _textColor.withValues(alpha: 0.5),
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                12 * scale,
+                0,
+                12 * scale,
+                12 * scale,
+              ),
+              child: Column(
+                children: card.smartForms
+                    .where((f) => f.isActive)
+                    .map(
+                      (f) => Padding(
+                        padding: EdgeInsets.only(bottom: 8 * scale),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 10 * scale,
+                            vertical: 10 * scale,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _textColor.withValues(alpha: 0.04),
+                            borderRadius: BorderRadius.circular(10 * scale),
+                            border: Border.all(
+                              color: _textColor.withValues(alpha: 0.08),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                f.name,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 9 * scale,
+                                  fontWeight: FontWeight.w700,
+                                  color: _textColor,
+                                ),
+                              ),
+                              SizedBox(height: 6 * scale),
+                              Container(
+                                width: double.infinity,
+                                padding: EdgeInsets.symmetric(
+                                  vertical: 6 * scale,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _accentColor,
+                                  borderRadius: BorderRadius.circular(
+                                    6 * scale,
+                                  ),
+                                ),
+                                child: Text(
+                                  'Enviar',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 8 * scale,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -746,26 +827,6 @@ class _ScreenContent extends StatelessWidget {
     } catch (_) {}
     return url;
   }
-
-  IconData _contactIcon(ContactType t) => switch (t) {
-    ContactType.phone => Icons.phone_outlined,
-    ContactType.whatsapp => Icons.chat_outlined,
-    ContactType.email => Icons.email_outlined,
-    ContactType.address => Icons.location_on_outlined,
-    ContactType.website => Icons.language_outlined,
-  };
-
-  IconData _socialIcon(SocialPlatform p) => switch (p) {
-    SocialPlatform.linkedin => Icons.work_outline,
-    SocialPlatform.instagram => Icons.camera_alt_outlined,
-    SocialPlatform.facebook => Icons.facebook_outlined,
-    SocialPlatform.tiktok => Icons.music_note_outlined,
-    SocialPlatform.twitter => Icons.alternate_email,
-    SocialPlatform.youtube => Icons.play_circle_outline,
-    SocialPlatform.calendly => Icons.calendar_today_outlined,
-    SocialPlatform.github => Icons.code_outlined,
-    SocialPlatform.custom => Icons.link_outlined,
-  };
 }
 
 class _StripePainter extends CustomPainter {
