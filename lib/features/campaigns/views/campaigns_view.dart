@@ -1497,16 +1497,6 @@ class _CampaignDetailState extends State<_CampaignDetail> {
           ),
           _DetailSection(
             title: 'Equipo',
-            trailing: TextButton.icon(
-              onPressed: _showAddMemberPicker,
-              icon: const Icon(Icons.group_add_outlined, size: 16),
-              label: const Text('Agregar'),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.primary,
-                padding: EdgeInsets.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-            ),
             child: _loadingMembers
                 ? _members.isEmpty
                       ? const Padding(
@@ -1532,7 +1522,6 @@ class _CampaignDetailState extends State<_CampaignDetail> {
                                   jobTitle: member['job_title'],
                                   onInsights: () =>
                                       _showMemberAnalytics(member),
-                                  onRemove: () => _removeMember(member['id']!),
                                 ),
                               )
                               .toList(),
@@ -1559,7 +1548,6 @@ class _CampaignDetailState extends State<_CampaignDetail> {
                             ),
                             jobTitle: member['job_title'],
                             onInsights: () => _showMemberAnalytics(member),
-                            onRemove: () => _removeMember(member['id']!),
                           ),
                         )
                         .toList(),
@@ -2265,7 +2253,7 @@ class _MetricBarRow extends StatelessWidget {
     return Row(
       children: [
         SizedBox(
-          width: 62,
+          width: 110,
           child: Text(
             label,
             style: GoogleFonts.dmSans(

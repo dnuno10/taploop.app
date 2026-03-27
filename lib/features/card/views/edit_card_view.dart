@@ -1803,7 +1803,7 @@ class _ContactTabState extends State<_ContactTab> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Arrastra para ordenar (el primero se mostrará primero).',
+                  'Arrastra para ordenar.',
                   style: GoogleFonts.dmSans(
                     fontSize: 11,
                     color: context.textMuted,
@@ -2037,7 +2037,7 @@ class _SocialTabState extends State<_SocialTab> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Arrastra para ordenar (la primera se mostrará primero).',
+                  'Arrastra para ordenar.',
                   style: GoogleFonts.dmSans(
                     fontSize: 11,
                     color: context.textMuted,
