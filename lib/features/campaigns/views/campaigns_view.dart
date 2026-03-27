@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+  import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -2815,14 +2815,6 @@ class _NewCampaignSheetState extends State<_NewCampaignSheet> {
                 ),
               ),
               sectionSpacing,
-              _EditorProgressSummary(
-                date: _date,
-                startTime: _startTime,
-                endTime: _endTime,
-                selectedMembers: _selectedMembers.length,
-                objective: _objective?.label,
-              ),
-              sectionSpacing,
               _FormSection(
                 title: '1. Define la campaña',
                 subtitle:
@@ -3191,55 +3183,6 @@ class _FormSection extends StatelessWidget {
   }
 }
 
-class _EditorProgressSummary extends StatelessWidget {
-  final DateTime date;
-  final TimeOfDay? startTime;
-  final TimeOfDay? endTime;
-  final int selectedMembers;
-  final String? objective;
-
-  const _EditorProgressSummary({
-    required this.date,
-    required this.startTime,
-    required this.endTime,
-    required this.selectedMembers,
-    required this.objective,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final schedule = _formatTimeRange(
-      _formatTimeOfDay(startTime),
-      _formatTimeOfDay(endTime),
-    );
-    final chips = <String>[
-      'Fecha ${_fmtShortDate(date)}',
-      if (schedule != null) 'Horario $schedule',
-      if (selectedMembers > 0) '$selectedMembers miembros',
-      objective ?? 'Objetivo por definir',
-    ];
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: context.bgPage,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.borderColor),
-      ),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: chips
-            .map(
-              (chip) =>
-                  _InfoPill(icon: Icons.check_circle_outline, label: chip),
-            )
-            .toList(),
-      ),
-    );
-  }
-}
 
 String _campaignHeadline(CampaignModel campaign) {
   final schedule = _formatTimeRange(campaign.startTime, campaign.endTime);

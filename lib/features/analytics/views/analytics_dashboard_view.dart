@@ -1084,33 +1084,13 @@ class _ActivityBlock extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Actividad reciente',
-                  style: GoogleFonts.outfit(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: context.textPrimary,
-                  ),
-                ),
-              ),
-              MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: GestureDetector(
-                  onTap: () {},
-                  child: Text(
-                    'Ver todo',
-                    style: GoogleFonts.dmSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          Text(
+            'Actividad reciente',
+            style: GoogleFonts.outfit(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: context.textPrimary,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -1118,7 +1098,11 @@ class _ActivityBlock extends StatelessWidget {
             style: GoogleFonts.dmSans(fontSize: 12, color: context.textMuted),
           ),
           const SizedBox(height: 20),
-          ...List.generate(analytics.recentEvents.length, (i) {
+          ...List.generate(
+              analytics.recentEvents.length > 10
+                  ? 10
+                  : analytics.recentEvents.length,
+              (i) {
             return Column(
               children: [
                 VisitEventTile(event: analytics.recentEvents[i]),

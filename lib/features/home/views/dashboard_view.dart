@@ -1405,7 +1405,7 @@ class _LeadsTable extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Leads priorizados por intención, score y última actividad.',
+                      'Leads priorizados por intención y última actividad.',
                       style: GoogleFonts.dmSans(
                         color: context.textSecondary,
                         fontSize: 13,
@@ -1482,8 +1482,7 @@ class _LeadsHeaderRow extends StatelessWidget {
         children: [
           Expanded(flex: 4, child: Text('LEAD', style: style)),
           Expanded(flex: 3, child: Text('ETAPA', style: style)),
-          Expanded(flex: 2, child: Text('PUNTAJE', style: style)),
-          Expanded(flex: 2, child: Text('ÚLTIMA VISITA', style: style)),
+          Expanded(flex: 3, child: Text('ÚLTIMA VISITA', style: style)),
           Expanded(flex: 2, child: Text('ESTADO', style: style)),
         ],
       ),
@@ -1571,18 +1570,7 @@ class _LeadRow extends StatelessWidget {
             ),
           ),
           Expanded(
-            flex: 2,
-            child: Text(
-              '${lead.score}',
-              style: GoogleFonts.outfit(
-                color: context.textPrimary,
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 2,
+            flex: 3,
             child: Text(
               _formatShortDate(lead.lastSeen),
               style: GoogleFonts.dmSans(
@@ -1702,8 +1690,6 @@ class _LeadCard extends StatelessWidget {
           const SizedBox(height: 14),
           Row(
             children: [
-              _LeadMetric(label: 'Score', value: '${lead.score}'),
-              const SizedBox(width: 14),
               _LeadMetric(
                 label: 'Última visita',
                 value: _formatShortDate(lead.lastSeen),

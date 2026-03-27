@@ -1119,10 +1119,6 @@ class _MemberAnalyticsCardState extends State<_MemberAnalyticsCard> {
       orElse: () => widget.leads.isNotEmpty ? widget.leads.first : _emptyLead,
     );
     final hasSelectedLead = widget.leads.isNotEmpty;
-    final score = _memberScore(widget.member, widget.leads);
-    final scoreDelta = widget.member.profileViews == 0
-        ? 0
-        : ((widget.member.leads / widget.member.profileViews) * 100).round();
 
     return Container(
       padding: const EdgeInsets.all(22),
@@ -1137,8 +1133,6 @@ class _MemberAnalyticsCardState extends State<_MemberAnalyticsCard> {
           _MemberOverviewHeader(
             member: widget.member,
             rank: widget.rank,
-            score: score,
-            scoreDelta: scoreDelta,
           ),
           const SizedBox(height: 18),
           _MemberKpiGrid(
@@ -1187,14 +1181,10 @@ class _MemberAnalyticsCardState extends State<_MemberAnalyticsCard> {
 class _MemberOverviewHeader extends StatelessWidget {
   final TeamMemberModel member;
   final int rank;
-  final int score;
-  final int scoreDelta;
 
   const _MemberOverviewHeader({
     required this.member,
     required this.rank,
-    required this.score,
-    required this.scoreDelta,
   });
 
   @override
@@ -1232,28 +1222,6 @@ class _MemberOverviewHeader extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 14),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '$score%',
-                  style: GoogleFonts.outfit(
-                    fontSize: 30,
-                    fontWeight: FontWeight.w800,
-                    color: context.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '$scoreDelta% tasa lead/vista',
-                  style: GoogleFonts.dmSans(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: context.textSecondary,
-                  ),
-                ),
-              ],
-            ),
           ],
         ),
         const SizedBox(height: 14),
@@ -1659,10 +1627,6 @@ class _LeadListHeader extends StatelessWidget {
       children: [
         Expanded(flex: 5, child: Text('LEAD', style: style)),
         Expanded(flex: 3, child: Text('SEÑALES', style: style)),
-        SizedBox(
-          width: 68,
-          child: Text('SCORE', style: style, textAlign: TextAlign.right),
-        ),
       ],
     );
   }
@@ -1828,18 +1792,6 @@ class _LeadCompactCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                SizedBox(
-                  width: 68,
-                  child: Text(
-                    '${lead.score}',
-                    textAlign: TextAlign.right,
-                    style: GoogleFonts.outfit(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: context.textPrimary,
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
@@ -1896,44 +1848,28 @@ class _LeadDetailPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      lead.displayName,
-                      style: GoogleFonts.outfit(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: context.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      [
-                        if ((lead.company ?? '').trim().isNotEmpty)
-                          lead.company!,
-                        if ((lead.location ?? '').trim().isNotEmpty)
-                          lead.location!,
-                      ].join(' · '),
-                      style: GoogleFonts.dmSans(
-                        fontSize: 12,
-                        color: context.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
               Text(
-                '${lead.score} pts',
+                lead.displayName,
                 style: GoogleFonts.outfit(
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
                   color: context.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                [
+                  if ((lead.company ?? '').trim().isNotEmpty)
+                    lead.company!,
+                  if ((lead.location ?? '').trim().isNotEmpty)
+                    lead.location!,
+                ].join(' · '),
+                style: GoogleFonts.dmSans(
+                  fontSize: 12,
+                  color: context.textSecondary,
                 ),
               ),
             ],
@@ -1951,7 +1887,6 @@ class _LeadDetailPanel extends StatelessWidget {
                 label: 'Último evento',
                 value: _relativeDate(lead.lastSeen),
               ),
-              _LeadDetailFact(label: 'Score', value: '${lead.score} pts'),
             ],
           ),
           const SizedBox(height: 16),
@@ -2063,18 +1998,6 @@ final LeadModel _emptyLead = LeadModel(
   lastSeen: DateTime.fromMillisecondsSinceEpoch(0),
 );
 
-int _memberScore(TeamMemberModel member, List<LeadModel> leads) {
-  final viewToTap = member.profileViews == 0
-      ? 0.0
-      : member.taps / member.profileViews;
-  final tapToClick = member.taps == 0 ? 0.0 : member.totalClicks / member.taps;
-  final clickToLead = member.totalClicks == 0
-      ? 0.0
-      : leads.length / member.totalClicks;
-  final weighted =
-      (viewToTap * 0.25) + (tapToClick * 0.30) + (clickToLead * 0.45);
-  return (weighted * 100).clamp(8, 99).round();
-}
 
 String _funnelInsight(TeamMemberModel member) {
   final viewToTap = member.profileViews == 0
