@@ -2154,257 +2154,267 @@ class _DesignTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDesktop = Responsive.isDesktop(context);
-    return Column(
-      children: [
-        if (!isDesktop) ...[
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Center(child: DigitalProfilePreview(card: card, width: 138)),
-          ),
-          Divider(color: context.borderColor, height: 1),
-        ],
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 560),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ── Tipo de Layout ────────────────────────────────
-                    Text(
-                      'Tipo de Layout',
-                      style: GoogleFonts.outfit(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: context.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Cambia completamente la estructura visual de tu tarjeta.',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 13,
-                        color: context.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: CardLayoutStyle.values.map((layout) {
-                        return _LayoutChip(
-                          layout: layout,
-                          selected: card.layoutStyle == layout,
-                          onTap: () =>
-                              onChanged(card.copyWith(layoutStyle: layout)),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 32),
+    final settingsContent = Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Tipo de Layout ────────────────────────────────
+            Text(
+              'Tipo de Layout',
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: context.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Cambia completamente la estructura visual de tu tarjeta.',
+              style: GoogleFonts.dmSans(
+                fontSize: 13,
+                color: context.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: CardLayoutStyle.values.map((layout) {
+                return _LayoutChip(
+                  layout: layout,
+                  selected: card.layoutStyle == layout,
+                  onTap: () => onChanged(card.copyWith(layoutStyle: layout)),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 32),
 
-                    // ── Color de Texto ───────────────────────────────
-                    Text(
-                      'Color de Texto',
-                      style: GoogleFonts.outfit(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: context.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Define el color de todos tus textos.',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 13,
-                        color: context.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: [
-                        _TextColorButton(
-                          label: 'Blanco',
-                          isDark: false,
-                          selected: !card.textColorIsDark,
-                          onTap: () =>
-                              onChanged(card.copyWith(themeStyle: CardThemeStyle.white)),
-                        ),
-                        _TextColorButton(
-                          label: 'Negro',
-                          isDark: true,
-                          selected: card.textColorIsDark,
-                          onTap: () =>
-                              onChanged(card.copyWith(themeStyle: CardThemeStyle.black)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 32),
-
-                    // ── Fondo de tarjeta ──────────────────────────────
-                    Text(
-                      'Fondo de tarjeta',
-                      style: GoogleFonts.outfit(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: context.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Personaliza el color y estilo del fondo.',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 13,
-                        color: context.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: CardBgStyle.values.map((s) {
-                        return _BgStyleChip(
-                          style: s,
-                          selected: card.bgStyle == s,
-                          onTap: () => onChanged(card.copyWith(bgStyle: s)),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      'Color de fondo',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: context.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children:
-                          const [
-                            Colors.white,
-                            Color(0xFFF4F4F6),
-                            Color(0xFFF0F4FF),
-                            Color(0xFFF0FFF4),
-                            Color(0xFFFFF8F0),
-                            Color(0xFF0D0D0D),
-                            Color(0xFF1C1C2E),
-                            Color(0xFF6C4FE8),
-                          ].map((c) {
-                            return _ColorDot(
-                              color: c,
-                              selected: card.bgColor == c,
-                              onTap: () => onChanged(card.copyWith(bgColor: c)),
-                            );
-                          }).toList(),
-                    ),
-                    const SizedBox(height: 12),
-                    _CustomColorPanel(
-                      color: card.bgColor ?? Colors.white,
-                      onChanged: (c) => onChanged(card.copyWith(bgColor: c)),
-                    ),
-                    if (card.bgStyle == CardBgStyle.gradient ||
-                        card.bgStyle == CardBgStyle.mesh) ...[
-                      const SizedBox(height: 20),
-                      Text(
-                        'Color secundario',
-                        style: GoogleFonts.dmSans(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: context.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children:
-                            const [
-                              Color(0xFF6C4FE8),
-                              Color(0xFF1A73E8),
-                              Color(0xFF1A8C4E),
-                              Color(0xFFD93025),
-                              Color(0xFF0D0D0D),
-                              Color(0xFF00ACC1),
-                              Color(0xFFF5A623),
-                              Color(0xFFEF6820),
-                            ].map((c) {
-                              return _ColorDot(
-                                color: c,
-                                selected: card.bgColorEnd == c,
-                                onTap: () =>
-                                    onChanged(card.copyWith(bgColorEnd: c)),
-                              );
-                            }).toList(),
-                      ),
-                      const SizedBox(height: 12),
-                      _CustomColorPanel(
-                        color: card.bgColorEnd ?? const Color(0xFF6C4FE8),
-                        onChanged: (c) =>
-                            onChanged(card.copyWith(bgColorEnd: c)),
-                      ),
-                    ],
-                    const SizedBox(height: 32),
-
-                    // ── Color de Botones ─────────────────────────────
-                    Text(
-                      'Color de Botones',
-                      style: GoogleFonts.outfit(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: context.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Se aplica a botones y detalles de tu tarjeta.',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 13,
-                        color: context.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children:
-                          const [
-                            Color(0xFFEF6820),
-                            Color(0xFF6C4FE8),
-                            Color(0xFF1A73E8),
-                            Color(0xFF1A8C4E),
-                            Color(0xFFD93025),
-                            Color(0xFF0D0D0D),
-                            Color(0xFF00ACC1),
-                            Color(0xFFF5A623),
-                          ].map((c) {
-                            return _ColorDot(
-                              color: c,
-                              selected: card.primaryColor == c,
-                              onTap: () =>
-                                  onChanged(card.copyWith(primaryColor: c)),
-                            );
-                          }).toList(),
-                    ),
-                    const SizedBox(height: 14),
-                    _CustomColorPanel(
-                      color: card.primaryColor,
-                      onChanged: (c) => onChanged(card.copyWith(primaryColor: c)),
-                    ),
-                    const SizedBox(height: 48),
-                  ],
+            // ── Color de Texto ───────────────────────────────
+            Text(
+              'Color de Texto',
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: context.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Define el color de todos tus textos.',
+              style: GoogleFonts.dmSans(
+                fontSize: 13,
+                color: context.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                _TextColorButton(
+                  label: 'Blanco',
+                  isDark: false,
+                  selected: !card.textColorIsDark,
+                  onTap: () => onChanged(
+                    card.copyWith(themeStyle: CardThemeStyle.white),
+                  ),
                 ),
+                _TextColorButton(
+                  label: 'Negro',
+                  isDark: true,
+                  selected: card.textColorIsDark,
+                  onTap: () => onChanged(
+                    card.copyWith(themeStyle: CardThemeStyle.black),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 32),
+
+            // ── Fondo de tarjeta ──────────────────────────────
+            Text(
+              'Fondo de tarjeta',
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: context.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Personaliza el color y estilo del fondo.',
+              style: GoogleFonts.dmSans(
+                fontSize: 13,
+                color: context.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: CardBgStyle.values.map((s) {
+                return _BgStyleChip(
+                  style: s,
+                  selected: card.bgStyle == s,
+                  onTap: () => onChanged(card.copyWith(bgStyle: s)),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Color de fondo',
+              style: GoogleFonts.dmSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: context.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children:
+                  const [
+                    Colors.white,
+                    Color(0xFFF4F4F6),
+                    Color(0xFFF0F4FF),
+                    Color(0xFFF0FFF4),
+                    Color(0xFFFFF8F0),
+                    Color(0xFF0D0D0D),
+                    Color(0xFF1C1C2E),
+                    Color(0xFF6C4FE8),
+                  ].map((c) {
+                    return _ColorDot(
+                      color: c,
+                      selected: card.bgColor == c,
+                      onTap: () => onChanged(card.copyWith(bgColor: c)),
+                    );
+                  }).toList(),
+            ),
+            const SizedBox(height: 12),
+            _CustomColorPanel(
+              color: card.bgColor ?? Colors.white,
+              onChanged: (c) => onChanged(card.copyWith(bgColor: c)),
+            ),
+            if (card.bgStyle == CardBgStyle.gradient ||
+                card.bgStyle == CardBgStyle.mesh) ...[
+              const SizedBox(height: 20),
+              Text(
+                'Color secundario',
+                style: GoogleFonts.dmSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: context.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children:
+                    const [
+                      Color(0xFF6C4FE8),
+                      Color(0xFF1A73E8),
+                      Color(0xFF1A8C4E),
+                      Color(0xFFD93025),
+                      Color(0xFF0D0D0D),
+                      Color(0xFF00ACC1),
+                      Color(0xFFF5A623),
+                      Color(0xFFEF6820),
+                    ].map((c) {
+                      return _ColorDot(
+                        color: c,
+                        selected: card.bgColorEnd == c,
+                        onTap: () => onChanged(card.copyWith(bgColorEnd: c)),
+                      );
+                    }).toList(),
+              ),
+              const SizedBox(height: 12),
+              _CustomColorPanel(
+                color: card.bgColorEnd ?? const Color(0xFF6C4FE8),
+                onChanged: (c) => onChanged(card.copyWith(bgColorEnd: c)),
+              ),
+            ],
+            const SizedBox(height: 32),
+
+            // ── Color de Botones ─────────────────────────────
+            Text(
+              'Color de Botones',
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: context.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Se aplica a botones y detalles de tu tarjeta.',
+              style: GoogleFonts.dmSans(
+                fontSize: 13,
+                color: context.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children:
+                  const [
+                    Color(0xFFEF6820),
+                    Color(0xFF6C4FE8),
+                    Color(0xFF1A73E8),
+                    Color(0xFF1A8C4E),
+                    Color(0xFFD93025),
+                    Color(0xFF0D0D0D),
+                    Color(0xFF00ACC1),
+                    Color(0xFFF5A623),
+                  ].map((c) {
+                    return _ColorDot(
+                      color: c,
+                      selected: card.primaryColor == c,
+                      onTap: () => onChanged(card.copyWith(primaryColor: c)),
+                    );
+                  }).toList(),
+            ),
+            const SizedBox(height: 14),
+            _CustomColorPanel(
+              color: card.primaryColor,
+              onChanged: (c) => onChanged(card.copyWith(primaryColor: c)),
+            ),
+            const SizedBox(height: 48),
+          ],
+        ),
+      ),
+    );
+
+    if (isDesktop) {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: settingsContent,
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 20),
+            child: Center(
+              child: DigitalProfilePreview(
+                card: card,
+                width: 138,
+                enableInnerScroll: false,
               ),
             ),
           ),
-        ),
-      ],
+          Divider(color: context.borderColor, height: 1),
+          const SizedBox(height: 24),
+          settingsContent,
+        ],
+      ),
     );
   }
 }

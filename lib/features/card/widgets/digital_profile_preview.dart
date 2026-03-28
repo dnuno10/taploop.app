@@ -10,11 +10,13 @@ import '../models/digital_card_model.dart';
 class DigitalProfilePreview extends StatelessWidget {
   final DigitalCardModel card;
   final double width;
+  final bool enableInnerScroll;
 
   const DigitalProfilePreview({
     super.key,
     required this.card,
     this.width = 280,
+    this.enableInnerScroll = true,
   });
 
   double get _height => width * 1.95;
@@ -52,7 +54,11 @@ class DigitalProfilePreview extends StatelessWidget {
                 bottom: width * 0.04,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(width * 0.08),
-                  child: _ScreenContent(card: card, scale: _scale),
+                  child: _ScreenContent(
+                    card: card,
+                    scale: _scale,
+                    enableInnerScroll: enableInnerScroll,
+                  ),
                 ),
               ),
               // Notch / Dynamic Island
@@ -83,7 +89,12 @@ class DigitalProfilePreview extends StatelessWidget {
 class _ScreenContent extends StatelessWidget {
   final DigitalCardModel card;
   final double scale;
-  const _ScreenContent({required this.card, required this.scale});
+  final bool enableInnerScroll;
+  const _ScreenContent({
+    required this.card,
+    required this.scale,
+    required this.enableInnerScroll,
+  });
 
   Color get _bgColor {
     // Use bgColor from new design, with fallback to white if not set
@@ -127,7 +138,9 @@ class _ScreenContent extends StatelessWidget {
       ),
       child: SingleChildScrollView(
         primary: false,
-        physics: const ClampingScrollPhysics(),
+        physics: enableInnerScroll
+            ? const ClampingScrollPhysics()
+            : const NeverScrollableScrollPhysics(),
         child: Column(
           children: [
             _buildHeaderBand(headerPadding, isCentered),
