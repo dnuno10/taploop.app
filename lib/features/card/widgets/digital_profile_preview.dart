@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -106,317 +107,334 @@ class _ScreenContent extends StatelessWidget {
     final visibleSocials = card.socialLinks.where((s) => s.isVisible).toList()
       ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
     final isCentered = card.layoutStyle == CardLayoutStyle.centered;
-    final headerPadding = EdgeInsets.fromLTRB(16 * scale, 20 * scale, 16 * scale, 24 * scale);
+    final headerPadding = EdgeInsets.fromLTRB(
+      16 * scale,
+      20 * scale,
+      16 * scale,
+      24 * scale,
+    );
 
     final bgBase = card.bgColor ?? _bgColor;
-    final scrollContent = SingleChildScrollView(
-      physics: const ClampingScrollPhysics(),
-      child: Column(
-        children: [
-          _buildHeaderBand(headerPadding, isCentered),
-          // Contact items
-          if (visibleContacts.isNotEmpty) ...[
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                12 * scale,
-                10 * scale,
-                12 * scale,
-                6 * scale,
-              ),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'CONTACTO',
-                  style: GoogleFonts.outfit(
-                    fontSize: 8 * scale,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
-                    color: _textColor.withValues(alpha: 0.5),
+    final scrollContent = ScrollConfiguration(
+      behavior: const MaterialScrollBehavior().copyWith(
+        dragDevices: {
+          PointerDeviceKind.touch,
+          PointerDeviceKind.mouse,
+          PointerDeviceKind.trackpad,
+          PointerDeviceKind.stylus,
+          PointerDeviceKind.unknown,
+        },
+      ),
+      child: SingleChildScrollView(
+        primary: false,
+        physics: const ClampingScrollPhysics(),
+        child: Column(
+          children: [
+            _buildHeaderBand(headerPadding, isCentered),
+            // Contact items
+            if (visibleContacts.isNotEmpty) ...[
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  12 * scale,
+                  10 * scale,
+                  12 * scale,
+                  6 * scale,
+                ),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'CONTACTO',
+                    style: GoogleFonts.outfit(
+                      fontSize: 8 * scale,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8,
+                      color: _textColor.withValues(alpha: 0.5),
+                    ),
                   ),
                 ),
               ),
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(12 * scale, 0, 12 * scale, 0),
-              child: Column(
-                children: visibleContacts.map((c) {
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: 8 * scale),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 10 * scale,
-                        vertical: 8 * scale,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _textColor.withValues(alpha: 0.04),
-                        borderRadius: BorderRadius.circular(10 * scale),
-                        border: Border.all(
-                          color: _textColor.withValues(alpha: 0.08),
+              Padding(
+                padding: EdgeInsets.fromLTRB(12 * scale, 0, 12 * scale, 0),
+                child: Column(
+                  children: visibleContacts.map((c) {
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: 8 * scale),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 10 * scale,
+                          vertical: 8 * scale,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _textColor.withValues(alpha: 0.04),
+                          borderRadius: BorderRadius.circular(10 * scale),
+                          border: Border.all(
+                            color: _textColor.withValues(alpha: 0.08),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            PlatformIcon.contact(
+                              contactType: c.type,
+                              size: 10 * scale,
+                            ),
+                            SizedBox(width: 8 * scale),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    c.displayLabel,
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 8 * scale,
+                                      color: _textColor.withValues(alpha: 0.5),
+                                    ),
+                                  ),
+                                  Text(
+                                    c.value,
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 9 * scale,
+                                      fontWeight: FontWeight.w600,
+                                      color: _textColor,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.arrow_forward_ios,
+                              size: 8 * scale,
+                              color: _textColor.withValues(alpha: 0.3),
+                            ),
+                          ],
                         ),
                       ),
-                      child: Row(
-                        children: [
-                          PlatformIcon.contact(
-                            contactType: c.type,
-                            size: 10 * scale,
-                          ),
-                          SizedBox(width: 8 * scale),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  c.displayLabel,
-                                  style: GoogleFonts.dmSans(
-                                    fontSize: 8 * scale,
-                                    color: _textColor.withValues(alpha: 0.5),
-                                  ),
-                                ),
-                                Text(
-                                  c.value,
-                                  style: GoogleFonts.dmSans(
-                                    fontSize: 9 * scale,
-                                    fontWeight: FontWeight.w600,
-                                    color: _textColor,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
-                              ],
-                            ),
-                          ),
-                          Icon(
-                            Icons.arrow_forward_ios,
-                            size: 8 * scale,
-                            color: _textColor.withValues(alpha: 0.3),
-                          ),
-                        ],
-                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+            // Social links
+            if (visibleSocials.isNotEmpty)
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  12 * scale,
+                  10 * scale,
+                  12 * scale,
+                  6 * scale,
+                ),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'REDES SOCIALES',
+                    style: GoogleFonts.outfit(
+                      fontSize: 8 * scale,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8,
+                      color: _textColor.withValues(alpha: 0.5),
                     ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
-          // Social links
-          if (visibleSocials.isNotEmpty)
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                12 * scale,
-                10 * scale,
-                12 * scale,
-                6 * scale,
-              ),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'REDES SOCIALES',
-                  style: GoogleFonts.outfit(
-                    fontSize: 8 * scale,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
-                    color: _textColor.withValues(alpha: 0.5),
                   ),
                 ),
               ),
-            ),
-          if (visibleSocials.isNotEmpty)
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                12 * scale,
-                0,
-                12 * scale,
-                12 * scale,
-              ),
-              child: Column(
-                children: visibleSocials.map((s) {
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: 8 * scale),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 10 * scale,
-                        vertical: 8 * scale,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _textColor.withValues(alpha: 0.04),
-                        borderRadius: BorderRadius.circular(10 * scale),
-                        border: Border.all(
-                          color: _textColor.withValues(alpha: 0.08),
+            if (visibleSocials.isNotEmpty)
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  12 * scale,
+                  0,
+                  12 * scale,
+                  12 * scale,
+                ),
+                child: Column(
+                  children: visibleSocials.map((s) {
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: 8 * scale),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 10 * scale,
+                          vertical: 8 * scale,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _textColor.withValues(alpha: 0.04),
+                          borderRadius: BorderRadius.circular(10 * scale),
+                          border: Border.all(
+                            color: _textColor.withValues(alpha: 0.08),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            PlatformIcon.social(
+                              platform: s.platform,
+                              size: 10 * scale,
+                            ),
+                            SizedBox(width: 8 * scale),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    s.label,
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 9 * scale,
+                                      fontWeight: FontWeight.w600,
+                                      color: _textColor,
+                                    ),
+                                  ),
+                                  Text(
+                                    _shortHandle(s.url),
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 8 * scale,
+                                      color: _textColor.withValues(alpha: 0.5),
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.arrow_forward_ios,
+                              size: 8 * scale,
+                              color: _textColor.withValues(alpha: 0.3),
+                            ),
+                          ],
                         ),
                       ),
-                      child: Row(
-                        children: [
-                          PlatformIcon.social(
-                            platform: s.platform,
-                            size: 10 * scale,
-                          ),
-                          SizedBox(width: 8 * scale),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  s.label,
-                                  style: GoogleFonts.dmSans(
-                                    fontSize: 9 * scale,
-                                    fontWeight: FontWeight.w600,
-                                    color: _textColor,
-                                  ),
-                                ),
-                                Text(
-                                  _shortHandle(s.url),
-                                  style: GoogleFonts.dmSans(
-                                    fontSize: 8 * scale,
-                                    color: _textColor.withValues(alpha: 0.5),
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
-                              ],
-                            ),
-                          ),
-                          Icon(
-                            Icons.arrow_forward_ios,
-                            size: 8 * scale,
-                            color: _textColor.withValues(alpha: 0.3),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          if (card.calendarEnabled && (card.calendarUrl?.isNotEmpty ?? false))
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                12 * scale,
-                4 * scale,
-                12 * scale,
-                12 * scale,
-              ),
-              child: Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(
-                  horizontal: 12 * scale,
-                  vertical: 10 * scale,
+                    );
+                  }).toList(),
                 ),
-                decoration: BoxDecoration(
-                  color: _accentColor,
-                  borderRadius: BorderRadius.circular(10 * scale),
+              ),
+            if (card.calendarEnabled && (card.calendarUrl?.isNotEmpty ?? false))
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  12 * scale,
+                  4 * scale,
+                  12 * scale,
+                  12 * scale,
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.calendar_today_outlined,
-                      size: 11 * scale,
-                      color: Colors.white,
-                    ),
-                    SizedBox(width: 6 * scale),
-                    Text(
-                      'Agendar reunión',
-                      style: GoogleFonts.outfit(
-                        fontSize: 9 * scale,
-                        fontWeight: FontWeight.w700,
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 12 * scale,
+                    vertical: 10 * scale,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _accentColor,
+                    borderRadius: BorderRadius.circular(10 * scale),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.calendar_today_outlined,
+                        size: 11 * scale,
                         color: Colors.white,
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          if (card.smartForms.where((f) => f.isActive).isNotEmpty) ...[ 
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                12 * scale,
-                10 * scale,
-                12 * scale,
-                4 * scale,
-              ),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'FORMULARIOS',
-                  style: GoogleFonts.outfit(
-                    fontSize: 8 * scale,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
-                    color: _textColor.withValues(alpha: 0.5),
+                      SizedBox(width: 6 * scale),
+                      Text(
+                        'Agendar reunión',
+                        style: GoogleFonts.outfit(
+                          fontSize: 9 * scale,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                12 * scale,
-                0,
-                12 * scale,
-                12 * scale,
+            if (card.smartForms.where((f) => f.isActive).isNotEmpty) ...[
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  12 * scale,
+                  10 * scale,
+                  12 * scale,
+                  4 * scale,
+                ),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'FORMULARIOS',
+                    style: GoogleFonts.outfit(
+                      fontSize: 8 * scale,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8,
+                      color: _textColor.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ),
               ),
-              child: Column(
-                children: card.smartForms
-                    .where((f) => f.isActive)
-                    .map(
-                      (f) => Padding(
-                        padding: EdgeInsets.only(bottom: 8 * scale),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 10 * scale,
-                            vertical: 10 * scale,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _textColor.withValues(alpha: 0.04),
-                            borderRadius: BorderRadius.circular(10 * scale),
-                            border: Border.all(
-                              color: _textColor.withValues(alpha: 0.08),
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  12 * scale,
+                  0,
+                  12 * scale,
+                  12 * scale,
+                ),
+                child: Column(
+                  children: card.smartForms
+                      .where((f) => f.isActive)
+                      .map(
+                        (f) => Padding(
+                          padding: EdgeInsets.only(bottom: 8 * scale),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 10 * scale,
+                              vertical: 10 * scale,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _textColor.withValues(alpha: 0.04),
+                              borderRadius: BorderRadius.circular(10 * scale),
+                              border: Border.all(
+                                color: _textColor.withValues(alpha: 0.08),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  f.name,
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 9 * scale,
+                                    fontWeight: FontWeight.w700,
+                                    color: _textColor,
+                                  ),
+                                ),
+                                SizedBox(height: 6 * scale),
+                                Container(
+                                  width: double.infinity,
+                                  padding: EdgeInsets.symmetric(
+                                    vertical: 6 * scale,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _accentColor,
+                                    borderRadius: BorderRadius.circular(
+                                      6 * scale,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Enviar',
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 8 * scale,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                f.name,
-                                style: GoogleFonts.outfit(
-                                  fontSize: 9 * scale,
-                                  fontWeight: FontWeight.w700,
-                                  color: _textColor,
-                                ),
-                              ),
-                              SizedBox(height: 6 * scale),
-                              Container(
-                                width: double.infinity,
-                                padding: EdgeInsets.symmetric(
-                                  vertical: 6 * scale,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: _accentColor,
-                                  borderRadius: BorderRadius.circular(
-                                    6 * scale,
-                                  ),
-                                ),
-                                child: Text(
-                                  'Enviar',
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.dmSans(
-                                    fontSize: 8 * scale,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
                         ),
-                      ),
-                    )
-                    .toList(),
+                      )
+                      .toList(),
+                ),
               ),
-            ),
+            ],
           ],
-        ],
+        ),
       ),
     );
 
@@ -436,10 +454,7 @@ class _ScreenContent extends StatelessWidget {
     );
   }
 
-  Widget _buildHeaderBand(
-    EdgeInsets headerPadding,
-    bool isCentered,
-  ) {
+  Widget _buildHeaderBand(EdgeInsets headerPadding, bool isCentered) {
     switch (card.layoutStyle) {
       case CardLayoutStyle.banner:
         return _buildBannerHeader();
@@ -448,10 +463,7 @@ class _ScreenContent extends StatelessWidget {
     }
   }
 
-  Widget _buildClassicHeader(
-    EdgeInsets headerPadding,
-    bool isCentered,
-  ) {
+  Widget _buildClassicHeader(EdgeInsets headerPadding, bool isCentered) {
     return Container(
       width: double.infinity,
       padding: headerPadding,
@@ -499,10 +511,7 @@ class _ScreenContent extends StatelessWidget {
           SizedBox(height: 3 * scale),
           Text(
             card.jobTitle.isEmpty ? 'Tu cargo' : card.jobTitle,
-            style: GoogleFonts.dmSans(
-              fontSize: 11 * scale,
-              color: _subColor,
-            ),
+            style: GoogleFonts.dmSans(fontSize: 11 * scale, color: _subColor),
             textAlign: isCentered ? TextAlign.center : TextAlign.left,
           ),
           if (card.company.isNotEmpty) ...[

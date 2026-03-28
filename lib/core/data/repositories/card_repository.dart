@@ -194,7 +194,7 @@ class CardRepository {
           'bio': '',
           'public_slug': slug,
           'is_active': true,
-          'theme_style': 'white',
+          'theme_style': 'black',
           'layout_style': 'centered',
           'primary_color': 0xFFEF6820,
           'bg_style': 'plain',

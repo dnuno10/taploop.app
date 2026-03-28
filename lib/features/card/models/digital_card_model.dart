@@ -3,10 +3,7 @@ import 'social_link_model.dart';
 import 'contact_item_model.dart';
 import 'smart_form_model.dart';
 
-enum CardThemeStyle {
-  white,
-  black,
-}
+enum CardThemeStyle { white, black }
 
 CardThemeStyle _themeStyleFromString(String s) {
   switch (s) {
@@ -66,7 +63,7 @@ class DigitalCardModel {
   final CardBgStyle bgStyle;
   final Color? bgColor;
   final Color? bgColorEnd;
-  
+
   bool get textColorIsDark => themeStyle == CardThemeStyle.black;
   // Forms & Calendar
   final List<String> enabledForms;
@@ -96,7 +93,7 @@ class DigitalCardModel {
     this.profilePhotoUrl,
     this.companyLogoUrl,
     this.bio,
-    this.themeStyle = CardThemeStyle.white,
+    this.themeStyle = CardThemeStyle.black,
     this.primaryColor = const Color(0xFFEF6820),
     this.backgroundColorStart,
     this.backgroundColorEnd,
