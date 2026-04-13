@@ -20,6 +20,17 @@ class RemoteBrandLogo extends StatelessWidget {
     return normalized.endsWith('.svg');
   }
 
+  Widget _placeholder() {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(10),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isSvg) {
@@ -28,7 +39,7 @@ class RemoteBrandLogo extends StatelessWidget {
         width: width,
         height: height,
         fit: fit,
-        placeholderBuilder: (_) => SizedBox(width: width, height: height),
+        placeholderBuilder: (_) => _placeholder(),
       );
     }
 
@@ -37,7 +48,12 @@ class RemoteBrandLogo extends StatelessWidget {
       width: width,
       height: height,
       fit: fit,
-      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+      gaplessPlayback: true,
+      frameBuilder: (_, child, frame, wasSynchronouslyLoaded) {
+        if (wasSynchronouslyLoaded || frame != null) return child;
+        return _placeholder();
+      },
+      errorBuilder: (_, __, ___) => _placeholder(),
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:file_saver/file_saver.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -54,6 +55,7 @@ class _PublicCardViewState extends State<PublicCardView> {
   bool _loading = true;
   bool _notFound = false;
   String? _errorDetail;
+  bool _hydratingOrganizationLogo = false;
   // NFC-specific
   _NfcState _nfcState = _NfcState.loading;
   bool _activating = false;
@@ -67,18 +69,56 @@ class _PublicCardViewState extends State<PublicCardView> {
     _load();
   }
 
+  bool _isSvgUrl(String url) {
+    final normalized = url.toLowerCase().split('?').first;
+    return normalized.endsWith('.svg');
+  }
+
+  Future<void> _warmCompanyLogo(String url) async {
+    try {
+      if (_isSvgUrl(url)) {
+        final loader = SvgNetworkLoader(url);
+        await svg.cache.putIfAbsent(
+          loader.cacheKey(null),
+          () => loader.loadBytes(null),
+        );
+      } else {
+        await precacheImage(NetworkImage(url), context);
+      }
+    } catch (_) {}
+  }
+
   Future<void> _hydrateOrganizationLogo(DigitalCardModel? card) async {
     if (card == null || card.orgId == null || card.orgId!.isEmpty) return;
     if (card.companyLogoUrl?.trim().isNotEmpty == true) return;
-    final orgLogoUrl = await CardRepository.fetchOrganizationLogoUrl(
-      card.orgId,
-    );
-    if (!mounted || _card?.id != card.id) return;
-    if (orgLogoUrl == null || orgLogoUrl.isEmpty) return;
-    if (_card?.companyLogoUrl == orgLogoUrl) return;
-    setState(() {
-      _card = _card?.copyWith(companyLogoUrl: orgLogoUrl);
-    });
+    if (mounted) {
+      setState(() => _hydratingOrganizationLogo = true);
+    }
+    try {
+      final orgLogoUrl = await CardRepository.fetchOrganizationLogoUrl(
+        card.orgId,
+      );
+      if (orgLogoUrl != null && orgLogoUrl.isNotEmpty) {
+        await _warmCompanyLogo(orgLogoUrl);
+      }
+      if (!mounted || _card?.id != card.id) return;
+      if (orgLogoUrl == null || orgLogoUrl.isEmpty) {
+        setState(() => _hydratingOrganizationLogo = false);
+        return;
+      }
+      if (_card?.companyLogoUrl == orgLogoUrl) {
+        setState(() => _hydratingOrganizationLogo = false);
+        return;
+      }
+      setState(() {
+        _card = _card?.copyWith(companyLogoUrl: orgLogoUrl);
+        _hydratingOrganizationLogo = false;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() => _hydratingOrganizationLogo = false);
+      }
+    }
   }
 
   Future<void> _load() async {
@@ -243,7 +283,11 @@ class _PublicCardViewState extends State<PublicCardView> {
             : 'Tarjeta digital desactivada por seguridad',
       );
     }
-    return _CardPage(card: _card!, campaignId: widget.campaignId);
+    return _CardPage(
+      card: _card!,
+      campaignId: widget.campaignId,
+      reserveCompanyLogoSpace: _hydratingOrganizationLogo,
+    );
   }
 }
 
@@ -375,19 +419,34 @@ class _StripePainter extends CustomPainter {
 
 // ─── Card Page ────────────────────────────────────────────────────────────────
 
-Widget _buildCardHeader(DigitalCardModel card) {
+Widget _buildCardHeader(
+  DigitalCardModel card, {
+  bool reserveCompanyLogoSpace = false,
+}) {
   switch (card.layoutStyle) {
     case CardLayoutStyle.banner:
-      return _BannerHeader(card: card);
+      return _BannerHeader(
+        card: card,
+        reserveCompanyLogoSpace: reserveCompanyLogoSpace,
+      );
     default:
-      return _HeroHeader(card: card);
+      return _HeroHeader(
+        card: card,
+        reserveCompanyLogoSpace: reserveCompanyLogoSpace,
+      );
   }
 }
 
 class _CardPage extends StatelessWidget {
   final DigitalCardModel card;
   final String? campaignId;
-  const _CardPage({required this.card, this.campaignId});
+  final bool reserveCompanyLogoSpace;
+
+  const _CardPage({
+    required this.card,
+    this.campaignId,
+    this.reserveCompanyLogoSpace = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -401,7 +460,12 @@ class _CardPage extends StatelessWidget {
 
     final scrollView = CustomScrollView(
       slivers: [
-        SliverToBoxAdapter(child: _buildCardHeader(card)),
+        SliverToBoxAdapter(
+          child: _buildCardHeader(
+            card,
+            reserveCompanyLogoSpace: reserveCompanyLogoSpace,
+          ),
+        ),
         SliverToBoxAdapter(
           child: _SaveContactSection(
             card: card,
@@ -495,7 +559,9 @@ class _CardPage extends StatelessWidget {
 
 class _HeroHeader extends StatelessWidget {
   final DigitalCardModel card;
-  const _HeroHeader({required this.card});
+  final bool reserveCompanyLogoSpace;
+
+  const _HeroHeader({required this.card, this.reserveCompanyLogoSpace = false});
 
   String _initials(String name) {
     final parts = name.trim().split(' ');
@@ -528,12 +594,12 @@ class _HeroHeader extends StatelessWidget {
                     : CrossAxisAlignment.start,
                 children: [
                   // Logo de empresa (primero)
-                  if (card.companyLogoUrl != null &&
-                      card.companyLogoUrl!.isNotEmpty)
+                  if ((card.companyLogoUrl?.isNotEmpty ?? false) ||
+                      reserveCompanyLogoSpace)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 24),
                       child: _PublicCompanyLogo(
-                        imageUrl: card.companyLogoUrl!,
+                        imageUrl: card.companyLogoUrl,
                         maxWidth: 160,
                         height: 56,
                       ),
@@ -633,7 +699,7 @@ class _HeroHeader extends StatelessWidget {
 }
 
 class _PublicCompanyLogo extends StatelessWidget {
-  final String imageUrl;
+  final String? imageUrl;
   final double maxWidth;
   final double height;
 
@@ -650,12 +716,19 @@ class _PublicCompanyLogo extends StatelessWidget {
       child: SizedBox(
         width: maxWidth,
         height: height,
-        child: RemoteBrandLogo(
-          imageUrl: imageUrl,
-          width: maxWidth,
-          height: height,
-          fit: BoxFit.contain,
-        ),
+        child: imageUrl == null || imageUrl!.isEmpty
+            ? DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              )
+            : RemoteBrandLogo(
+                imageUrl: imageUrl!,
+                width: maxWidth,
+                height: height,
+                fit: BoxFit.contain,
+              ),
       ),
     );
   }
@@ -665,7 +738,12 @@ class _PublicCompanyLogo extends StatelessWidget {
 
 class _BannerHeader extends StatelessWidget {
   final DigitalCardModel card;
-  const _BannerHeader({required this.card});
+  final bool reserveCompanyLogoSpace;
+
+  const _BannerHeader({
+    required this.card,
+    this.reserveCompanyLogoSpace = false,
+  });
 
   String _initials(String name) {
     final parts = name.trim().split(' ');
@@ -693,12 +771,12 @@ class _BannerHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   // Logo de empresa (primero en su propio column)
-                  if (card.companyLogoUrl != null &&
-                      card.companyLogoUrl!.isNotEmpty)
+                  if ((card.companyLogoUrl?.isNotEmpty ?? false) ||
+                      reserveCompanyLogoSpace)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 24),
                       child: _PublicCompanyLogo(
-                        imageUrl: card.companyLogoUrl!,
+                        imageUrl: card.companyLogoUrl,
                         maxWidth: 140,
                         height: 56,
                       ),
