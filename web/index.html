@@ -38,15 +38,36 @@
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
-  <!-- SPA redirect restore: 404.html encodes the path as ?p=/nfc/TL-XXXX,
-       this script restores it before Flutter boots so go_router sees the real URL. -->
+  <!-- SPA redirect restore:
+       404.html first tries sessionStorage and falls back to ?p= when storage
+       is unavailable, so Safari/iOS older versions can still recover deep links. -->
   <script>
     (function() {
-      var redirect = sessionStorage.getItem('spa_redirect');
+      var redirect = null;
+
+      try {
+        redirect = sessionStorage.getItem('spa_redirect');
+        if (redirect) {
+          sessionStorage.removeItem('spa_redirect');
+        }
+      } catch (error) {}
+
+      if (!redirect) {
+        try {
+          var match = window.location.search.match(/[?&]p=([^&]+)/);
+          if (match && match[1]) {
+            redirect = decodeURIComponent(match[1]);
+          }
+        } catch (error) {}
+      }
+
       if (redirect) {
-        sessionStorage.removeItem('spa_redirect');
-        // Replace current history entry so the back button works correctly
-        window.history.replaceState(null, '', redirect);
+        try {
+          // Replace current history entry so the back button works correctly
+          window.history.replaceState(null, '', redirect);
+        } catch (error) {
+          window.location.replace(redirect);
+        }
       }
     })();
   </script>

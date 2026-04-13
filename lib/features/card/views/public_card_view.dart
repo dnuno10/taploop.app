@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:file_saver/file_saver.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -11,9 +14,11 @@ import '../../../core/data/app_state.dart';
 import '../../../core/data/repositories/card_repository.dart';
 import '../../../core/data/repositories/analytics_repository.dart';
 import '../../../core/data/repositories/lead_repository.dart';
+import '../../../core/services/vcard_web_helper.dart';
 import '../../../core/utils/visitor_info.dart';
 import '../../../core/widgets/remote_brand_logo.dart';
 import '../../../core/widgets/platform_icon.dart';
+import '../../../core/widgets/taploop_toast.dart';
 import '../models/digital_card_model.dart';
 import '../models/contact_item_model.dart';
 import '../models/social_link_model.dart';
@@ -397,6 +402,14 @@ class _CardPage extends StatelessWidget {
     final scrollView = CustomScrollView(
       slivers: [
         SliverToBoxAdapter(child: _buildCardHeader(card)),
+        SliverToBoxAdapter(
+          child: _SaveContactSection(
+            card: card,
+            contacts: visibleContacts,
+            socials: visibleSocials,
+            accent: accent,
+          ),
+        ),
         if (visibleContacts.isNotEmpty) ...[
           SliverToBoxAdapter(
             child: _SectionHeader(title: 'Contacto', textColor: textCol),
@@ -505,7 +518,7 @@ class _HeroHeader extends StatelessWidget {
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 48, 24, 36),
+          padding: const EdgeInsets.fromLTRB(24, 48, 24, 22),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 480),
@@ -672,7 +685,7 @@ class _BannerHeader extends StatelessWidget {
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 40, 20, 28),
+          padding: const EdgeInsets.fromLTRB(20, 40, 20, 18),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 480),
@@ -811,6 +824,463 @@ class _SectionHeader extends StatelessWidget {
       ),
     );
   }
+}
+
+// ─── Save Contact ────────────────────────────────────────────────────────────
+
+class _SaveContactSection extends StatefulWidget {
+  final DigitalCardModel card;
+  final List<ContactItemModel> contacts;
+  final List<SocialLinkModel> socials;
+  final Color accent;
+
+  const _SaveContactSection({
+    required this.card,
+    required this.contacts,
+    required this.socials,
+    required this.accent,
+  });
+
+  @override
+  State<_SaveContactSection> createState() => _SaveContactSectionState();
+}
+
+class _SaveContactSectionState extends State<_SaveContactSection> {
+  bool _saving = false;
+
+  Future<void> _saveVCard() async {
+    if (_saving) return;
+    setState(() => _saving = true);
+
+    try {
+      final fileName = _buildVCardFileName(widget.card.name);
+      final bytes = Uint8List.fromList(
+        utf8.encode(
+          _buildVCard(
+            card: widget.card,
+            contacts: widget.contacts,
+            socials: widget.socials,
+          ),
+        ),
+      );
+
+      final result = await _persistVCard(fileName, bytes);
+      if (!mounted || !result.success) return;
+
+      unawaited(
+        AnalyticsRepository.recordInteraction(
+          cardId: widget.card.id,
+          source: 'contact',
+        ),
+      );
+
+      TapLoopToast.show(
+        context,
+        _downloadSuccessMessage(result),
+        TapLoopToastType.success,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      TapLoopToast.show(
+        context,
+        'No fue posible generar la vCard: $error',
+        TapLoopToastType.error,
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
+    }
+  }
+
+  Future<_VCardPersistResult> _persistVCard(
+    String fileName,
+    Uint8List bytes,
+  ) async {
+    const extension = 'vcf';
+    const mimeType = 'text/vcard';
+
+    if (kIsWeb) {
+      final webAction = await presentVCardOnWeb(
+        fileName: '$fileName.$extension',
+        bytes: bytes,
+        mimeType: mimeType,
+      );
+      if (webAction != null) {
+        return _VCardPersistResult(success: true, webAction: webAction);
+      }
+
+      final path = await FileSaver.instance.saveFile(
+        name: fileName,
+        bytes: bytes,
+        fileExtension: extension,
+        mimeType: MimeType.custom,
+        customMimeType: mimeType,
+      );
+      return _VCardPersistResult(
+        success: path.isNotEmpty,
+        webAction: 'downloaded',
+      );
+    }
+
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.iOS:
+      case TargetPlatform.android:
+        {
+          final path = await FileSaver.instance.saveAs(
+            name: fileName,
+            bytes: bytes,
+            fileExtension: extension,
+            mimeType: MimeType.custom,
+            customMimeType: mimeType,
+          );
+          return _VCardPersistResult(success: path?.isNotEmpty == true);
+        }
+      default:
+        {
+          final path = await FileSaver.instance.saveFile(
+            name: fileName,
+            bytes: bytes,
+            fileExtension: extension,
+            mimeType: MimeType.custom,
+            customMimeType: mimeType,
+          );
+          return _VCardPersistResult(success: path.isNotEmpty);
+        }
+    }
+  }
+
+  String _downloadSuccessMessage(_VCardPersistResult result) {
+    if (kIsWeb) {
+      if (result.webAction == 'opened') {
+        return 'Se intentó abrir la vCard en la app disponible del dispositivo.';
+      }
+      return 'La vCard se descargó en tu dispositivo.';
+    }
+
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.iOS:
+        return 'La vCard está lista para guardarse en Archivos.';
+      case TargetPlatform.android:
+        return 'La vCard está lista para guardarse en tu dispositivo.';
+      default:
+        return 'La vCard se generó correctamente.';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground =
+        ThemeData.estimateBrightnessForColor(widget.accent) == Brightness.dark
+        ? Colors.white
+        : const Color(0xFF111827);
+    final badgeColor = foreground.withValues(alpha: 0.14);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Material(
+            color: widget.accent,
+            borderRadius: BorderRadius.circular(14),
+            elevation: 0,
+            child: InkWell(
+              onTap: _saving ? null : _saveVCard,
+              borderRadius: BorderRadius.circular(14),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 11, 16, 14),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        color: badgeColor,
+                      ),
+                      child: Icon(
+                        _saving
+                            ? Icons.hourglass_top_rounded
+                            : Icons.download_rounded,
+                        size: 20,
+                        color: foreground,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      _saving ? 'Generando contacto...' : 'Guardar contacto',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.outfit(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: foreground,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _VCardPersistResult {
+  final bool success;
+  final String? webAction;
+
+  const _VCardPersistResult({required this.success, this.webAction});
+}
+
+String _buildVCardFileName(String name) {
+  final sanitized = name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '_');
+  final compact = sanitized
+      .replaceAll(RegExp(r'_+'), '_')
+      .replaceAll(RegExp(r'^_|_$'), '');
+  if (compact.isEmpty) return 'contacto_taploop';
+  return 'contacto_$compact';
+}
+
+String _buildVCard({
+  required DigitalCardModel card,
+  required List<ContactItemModel> contacts,
+  required List<SocialLinkModel> socials,
+}) {
+  final lines = <String>[
+    'BEGIN:VCARD',
+    'VERSION:3.0',
+    'FN:${_escapeVCardValue(card.name)}',
+  ];
+
+  final splitName = _splitFullName(card.name);
+  lines.add(
+    'N:${_escapeVCardValue(splitName.lastName)};${_escapeVCardValue(splitName.firstName)};;;',
+  );
+
+  if (card.company.trim().isNotEmpty) {
+    lines.add('ORG:${_escapeVCardValue(card.company)}');
+  }
+  if (card.jobTitle.trim().isNotEmpty) {
+    lines.add('TITLE:${_escapeVCardValue(card.jobTitle)}');
+  }
+
+  final seenPhoneNumbers = <String>{};
+  final seenEmails = <String>{};
+  final seenUrls = <String>{};
+  var urlIndex = 1;
+
+  for (final item in contacts) {
+    final value = item.value.trim();
+    if (value.isEmpty) continue;
+
+    switch (item.type) {
+      case ContactType.phone:
+        final phone = _normalizePhoneForVCard(value);
+        if (phone.isEmpty || !seenPhoneNumbers.add(phone)) continue;
+        lines.add('TEL;TYPE=CELL,VOICE:$phone');
+        break;
+      case ContactType.whatsapp:
+        final phone = _normalizePhoneForVCard(value);
+        if (phone.isNotEmpty && seenPhoneNumbers.add(phone)) {
+          lines.add('TEL;TYPE=CELL,VOICE:$phone');
+        }
+        final whatsappUrl = _normalizeWhatsappUrl(value);
+        if (whatsappUrl.isNotEmpty && seenUrls.add(whatsappUrl)) {
+          _appendVCardUrl(
+            lines: lines,
+            index: urlIndex++,
+            url: whatsappUrl,
+            label: 'WhatsApp',
+            type: 'OTHER',
+          );
+        }
+        break;
+      case ContactType.email:
+        final email = value.toLowerCase();
+        if (!seenEmails.add(email)) continue;
+        lines.add('EMAIL;TYPE=INTERNET:$email');
+        break;
+      case ContactType.address:
+        lines.add('ADR;TYPE=WORK:;;${_escapeVCardValue(value)};;;;');
+        break;
+      case ContactType.website:
+        final url = _normalizeUrl(value);
+        if (url.isEmpty || !seenUrls.add(url)) continue;
+        final label = _labelForUrl(url, fallbackLabel: item.displayLabel);
+        _appendVCardUrl(
+          lines: lines,
+          index: urlIndex++,
+          url: url,
+          label: label,
+          type: _vCardUrlTypeForLabel(label),
+        );
+        break;
+    }
+  }
+
+  for (final social in socials) {
+    final url = _normalizeUrl(social.url);
+    if (url.isEmpty || !seenUrls.add(url)) continue;
+    final label = _labelForUrl(url, fallbackLabel: social.label);
+    _appendVCardUrl(
+      lines: lines,
+      index: urlIndex++,
+      url: url,
+      label: label,
+      type: _vCardUrlTypeForLabel(label),
+    );
+  }
+
+  if (card.publicUrl.trim().isNotEmpty && seenUrls.add(card.publicUrl.trim())) {
+    _appendVCardUrl(
+      lines: lines,
+      index: urlIndex++,
+      url: card.publicUrl.trim(),
+      label: 'Tarjeta digital',
+      type: 'OTHER',
+    );
+  }
+
+  final noteParts = <String>[];
+  if (card.bio?.trim().isNotEmpty == true) {
+    noteParts.add(card.bio!.trim());
+  }
+  for (final social in socials) {
+    final url = _normalizeUrl(social.url);
+    if (url.isEmpty) continue;
+    noteParts.add('${social.label}: $url');
+  }
+
+  if (noteParts.isNotEmpty) {
+    lines.add('NOTE:${_escapeVCardValue(noteParts.join(' | '))}');
+  }
+
+  final revisionDate = (card.updatedAt ?? DateTime.now())
+      .toUtc()
+      .toIso8601String();
+  lines.add('REV:$revisionDate');
+  lines.add('END:VCARD');
+
+  return '${lines.join('\r\n')}\r\n';
+}
+
+void _appendVCardUrl({
+  required List<String> lines,
+  required int index,
+  required String url,
+  required String label,
+  String? type,
+}) {
+  final normalizedType = type?.trim().isNotEmpty == true
+      ? ';TYPE=${_escapeVCardType(type!)}'
+      : '';
+  final escapedUrl = _escapeVCardValue(url);
+  lines.add('item$index.URL$normalizedType:$escapedUrl');
+  lines.add('item$index.X-ABLabel:${_escapeVCardValue(label)}');
+}
+
+String _escapeVCardValue(String value) {
+  return value
+      .trim()
+      .replaceAll(r'\', r'\\')
+      .replaceAll('\r\n', r'\n')
+      .replaceAll('\n', r'\n')
+      .replaceAll(';', r'\;')
+      .replaceAll(',', r'\,');
+}
+
+String _escapeVCardType(String value) {
+  return value
+      .trim()
+      .replaceAll(RegExp(r'[^A-Za-z0-9_-]+'), '-')
+      .replaceAll(RegExp(r'-+'), '-')
+      .replaceAll(RegExp(r'^-|-$'), '');
+}
+
+String _normalizePhoneForVCard(String value) {
+  final raw = value.trim();
+  if (raw.isEmpty) return '';
+  final hasPlus = raw.startsWith('+');
+  final digits = raw.replaceAll(RegExp(r'[^\d]'), '');
+  if (digits.isEmpty) return '';
+  return hasPlus ? '+$digits' : digits;
+}
+
+String _normalizeWhatsappUrl(String value) {
+  final digits = value.replaceAll(RegExp(r'[^\d]'), '');
+  if (digits.isEmpty) return '';
+  return 'https://wa.me/$digits';
+}
+
+String _normalizeUrl(String value) {
+  final raw = value.trim();
+  if (raw.isEmpty) return '';
+  if (raw.startsWith('http://') || raw.startsWith('https://')) {
+    return raw;
+  }
+  return 'https://$raw';
+}
+
+String _labelForUrl(String url, {String? fallbackLabel}) {
+  final inferred = _platformLabelFromUrl(url);
+  if (inferred != null) return inferred;
+  final fallback = fallbackLabel?.trim();
+  if (fallback != null && fallback.isNotEmpty) return fallback;
+  return 'Sitio web';
+}
+
+String? _platformLabelFromUrl(String url) {
+  final host = Uri.tryParse(url)?.host.toLowerCase() ?? '';
+  if (host.contains('linkedin.com')) return 'LinkedIn';
+  if (host.contains('instagram.com')) return 'Instagram';
+  if (host.contains('facebook.com') || host == 'fb.com') return 'Facebook';
+  if (host.contains('tiktok.com')) return 'TikTok';
+  if (host == 'x.com' || host.contains('twitter.com')) return 'X';
+  if (host.contains('youtube.com') || host.contains('youtu.be')) {
+    return 'YouTube';
+  }
+  if (host.contains('github.com')) return 'GitHub';
+  if (host.contains('calendly.com')) return 'Calendly';
+  if (host.contains('wa.me') || host.contains('whatsapp.com')) {
+    return 'WhatsApp';
+  }
+  return null;
+}
+
+String _vCardUrlTypeForLabel(String label) {
+  switch (label.toLowerCase()) {
+    case 'linkedin':
+    case 'instagram':
+    case 'facebook':
+    case 'tiktok':
+    case 'x':
+    case 'youtube':
+    case 'github':
+    case 'calendly':
+    case 'whatsapp':
+      return label;
+    default:
+      return 'WORK';
+  }
+}
+
+({String firstName, String lastName}) _splitFullName(String name) {
+  final normalized = name.trim();
+  if (normalized.isEmpty) {
+    return (firstName: '', lastName: '');
+  }
+
+  final parts = normalized.split(RegExp(r'\s+'));
+  if (parts.length == 1) {
+    return (firstName: parts.first, lastName: '');
+  }
+
+  return (firstName: parts.first, lastName: parts.sublist(1).join(' '));
 }
 
 // ─── Contact Section ──────────────────────────────────────────────────────────
@@ -1422,10 +1892,10 @@ class _FormCardState extends State<_FormCard> {
   Future<void> _submit() async {
     if (_alreadySubmittedOnDevice) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Este dispositivo ya envió este formulario.'),
-          ),
+        TapLoopToast.show(
+          context,
+          'Este dispositivo ya envió este formulario.',
+          TapLoopToastType.warning,
         );
       }
       return;
@@ -1435,11 +1905,10 @@ class _FormCardState extends State<_FormCard> {
     // Validate required
     for (final f in fields) {
       if (f.isRequired && (_ctrl[f.id]?.text.trim().isEmpty ?? true)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Por favor completa: ${f.label}'),
-            backgroundColor: AppColors.error,
-          ),
+        TapLoopToast.show(
+          context,
+          'Por favor completa: ${f.label}',
+          TapLoopToastType.error,
         );
         return;
       }
@@ -1514,11 +1983,10 @@ class _FormCardState extends State<_FormCard> {
       debugPrint('[PublicCardView] submit form error: $e');
       if (mounted) {
         setState(() => _submitting = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al enviar. Intenta de nuevo.'),
-            backgroundColor: AppColors.error,
-          ),
+        TapLoopToast.show(
+          context,
+          'Error al enviar. Intenta de nuevo.',
+          TapLoopToastType.error,
         );
       }
     }

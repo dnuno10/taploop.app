@@ -4,12 +4,21 @@
   <meta charset="UTF-8">
   <title>TapLoop</title>
   <script>
-    // GitHub Pages SPA redirect trick.
-    // Store the full path + query + hash in sessionStorage,
-    // then redirect to the root index.html which will restore it.
-    var path = window.location.pathname + window.location.search + window.location.hash;
-    sessionStorage.setItem('spa_redirect', path);
-    window.location.replace('/');
+    (function() {
+      // Preserve the deep link before redirecting to the SPA shell.
+      // Safari/iOS can throw on sessionStorage access in older/privacy contexts,
+      // so we fall back to a query parameter instead of leaving the page blank.
+      var path = window.location.pathname + window.location.search + window.location.hash;
+      var target = '/';
+
+      try {
+        sessionStorage.setItem('spa_redirect', path);
+      } catch (error) {
+        target += '?p=' + encodeURIComponent(path);
+      }
+
+      window.location.replace(target);
+    })();
   </script>
 </head>
 <body></body>
